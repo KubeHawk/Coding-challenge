@@ -1,0 +1,6 @@
+apiVersion: v2
+name: crewmeister
+description: Crewmeister DevOps Challenge - Spring Boot App
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

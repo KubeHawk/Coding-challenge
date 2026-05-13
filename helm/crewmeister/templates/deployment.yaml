@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "crewmeister.fullname" . }}
+  labels:
+    {{- include "crewmeister.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "crewmeister.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "crewmeister.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_APPLICATION_NAME
+              value: {{ .Values.env.SPRING_APPLICATION_NAME }}
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://{{ include "crewmeister.fullname" . }}-mysql:{{ .Values.mysql.port }}/{{ .Values.mysql.database }}?createDatabaseIfNotExist=true
+            - name: SPRING_DATASOURCE_WRITER_URL
+              value: jdbc:mysql://{{ include "crewmeister.fullname" . }}-mysql:{{ .Values.mysql.port }}/{{ .Values.mysql.database }}?createDatabaseIfNotExist=true
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.mysql.username }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "crewmeister.fullname" . }}-db-secret
+                  key: mysql-password
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: 8080
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: 8080
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
