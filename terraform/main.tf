@@ -132,7 +132,7 @@ resource "helm_release" "crewmeister" {
   ]
 
   name      = "crewmeister"
-  chart     = "${path.module}/../../helm/crewmeister"   # ← fixed
+  chart     = "${path.module}/../helm/crewmeister"
   namespace = var.namespace
   timeout   = 300
   atomic    = true
