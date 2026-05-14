@@ -82,8 +82,8 @@ resource "google_sql_database_instance" "crewmeister" {
 
     ip_configuration {
       authorized_networks {
-        name  = "allow-all"
-        value = "0.0.0.0/0"
+        name  = "allow-gke-nodes"
+        value = "10.0.0.0/8"
       }
     }
   }
@@ -138,22 +138,19 @@ resource "helm_release" "crewmeister" {
   atomic    = true
   wait      = true
 
+  # Dynamic: built from Terraform variables
   set {
     name  = "image.repository"
     value = "${var.region}-docker.pkg.dev/${var.project_id}/crewmeister/crewmeister-app"
   }
+
+  # Dynamic: changes per deployment
   set {
     name  = "image.tag"
     value = var.app_image_tag
   }
-  set {
-    name  = "image.pullPolicy"
-    value = "Always"
-  }
-  set {
-    name  = "service.type"
-    value = "LoadBalancer"
-  }
+
+  # Dynamic: only known after Cloud SQL is created
   set {
     name  = "env.SPRING_DATASOURCE_URL"
     value = "jdbc:mysql://${google_sql_database_instance.crewmeister.public_ip_address}:3306/challenge?createDatabaseIfNotExist=true"
@@ -162,10 +159,8 @@ resource "helm_release" "crewmeister" {
     name  = "env.SPRING_DATASOURCE_WRITER_URL"
     value = "jdbc:mysql://${google_sql_database_instance.crewmeister.public_ip_address}:3306/challenge?createDatabaseIfNotExist=true"
   }
-  set {
-    name  = "env.SPRING_DATASOURCE_USERNAME"
-    value = "crewmeister"
-  }
+
+  # Sensitive: secret value from GitHub Secrets
   set_sensitive {
     name  = "env.SPRING_DATASOURCE_PASSWORD"
     value = var.db_password

@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: crewmeister-app
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 service:
   type: LoadBalancer
@@ -29,7 +29,4 @@ probes:
 
 env:
   SPRING_APPLICATION_NAME: crewmeister-challenge
-  SPRING_DATASOURCE_URL: ""
-  SPRING_DATASOURCE_WRITER_URL: ""
-  SPRING_DATASOURCE_USERNAME: ""
-  SPRING_DATASOURCE_PASSWORD: ""
+  SPRING_DATASOURCE_USERNAME: crewmeister
