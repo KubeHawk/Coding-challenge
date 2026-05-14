@@ -2,86 +2,138 @@ terraform {
   required_version = ">= 1.6.0"
 
   required_providers {
-    kind = {
-      source  = "tehcyx/kind"
-      version = "~> 0.4"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.13"
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.29"
     }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.2"
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.13"
     }
+  }
+
+  # Remote state stored in GCS bucket
+  backend "gcs" {
+    bucket = "crewmeister-terraform-state-496312"
+    prefix = "terraform/state"
   }
 }
 
-# ─── Kind Cluster ─────────────────────────────────────────────────────────────
-resource "kind_cluster" "crewmeister" {
-  name            = var.cluster_name
-  wait_for_ready  = true
+# ─── GCP Provider ─────────────────────────────────────────────────────────────
+provider "google" {
+  credentials = var.gcp_credentials
+  project     = var.project_id
+  region      = var.region
+  zone        = var.zone
+}
 
-  kind_config {
-    kind        = "Cluster"
-    api_version = "kind.x-k8s.io/v1alpha4"
+# ─── GKE Cluster ──────────────────────────────────────────────────────────────
+resource "google_container_cluster" "crewmeister" {
+  name     = var.cluster_name
+  location = var.zone
 
-    node {
-      role = "control-plane"
+  remove_default_node_pool = true
+  initial_node_count       = 1
 
-      # Map host port 30080 → NodePort 30080 inside the cluster
-      extra_port_mappings {
-        container_port = 30080
-        host_port      = 30080
-        protocol       = "TCP"
+  network    = "default"
+  subnetwork = "default"
+
+  deletion_protection = false
+}
+
+# ─── Node Pool ────────────────────────────────────────────────────────────────
+resource "google_container_node_pool" "crewmeister_nodes" {
+  name       = "${var.cluster_name}-node-pool"
+  location   = var.zone
+  cluster    = google_container_cluster.crewmeister.name
+  node_count = var.node_count
+
+  node_config {
+    machine_type = var.machine_type
+    disk_size_gb = 20
+    disk_type    = "pd-standard"
+
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+  }
+
+  management {
+    auto_repair  = true
+    auto_upgrade = true
+  }
+}
+
+# ─── Artifact Registry ────────────────────────────────────────────────────────
+resource "google_artifact_registry_repository" "crewmeister" {
+  location      = var.region
+  repository_id = "crewmeister"
+  format        = "DOCKER"
+  description   = "Crewmeister Docker images"
+}
+
+# ─── Cloud SQL (MySQL) ────────────────────────────────────────────────────────
+resource "google_sql_database_instance" "crewmeister" {
+  name             = "crewmeister-mysql"
+  database_version = "MYSQL_8_0"
+  region           = var.region
+
+  settings {
+    tier              = "db-f1-micro"
+    availability_type = "ZONAL"
+    disk_size         = 10
+    disk_type         = "PD_SSD"
+
+    backup_configuration {
+      enabled = false
+    }
+
+    ip_configuration {
+      authorized_networks {
+        name  = "allow-gke"
+        value = "0.0.0.0/0"
       }
     }
-
-    node {
-      role = "worker"
-    }
   }
+
+  deletion_protection = false
 }
 
-# ─── Providers wired to the new cluster ───────────────────────────────────────
+resource "google_sql_database" "crewmeister" {
+  name     = "challenge"
+  instance = google_sql_database_instance.crewmeister.name
+}
+
+resource "google_sql_user" "crewmeister" {
+  name     = "crewmeister"
+  instance = google_sql_database_instance.crewmeister.name
+  password = var.db_password
+}
+
+# ─── Kubernetes Provider (uses GKE cluster) ───────────────────────────────────
+data "google_client_config" "default" {}
+
 provider "kubernetes" {
-  host                   = kind_cluster.crewmeister.endpoint
-  cluster_ca_certificate = base64decode(kind_cluster.crewmeister.cluster_ca_certificate)
-  client_certificate     = base64decode(kind_cluster.crewmeister.client_certificate)
-  client_key             = base64decode(kind_cluster.crewmeister.client_key)
+  host                   = "https://${google_container_cluster.crewmeister.endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(google_container_cluster.crewmeister.master_auth[0].cluster_ca_certificate)
 }
 
 provider "helm" {
   kubernetes {
-    host                   = kind_cluster.crewmeister.endpoint
-    cluster_ca_certificate = base64decode(kind_cluster.crewmeister.cluster_ca_certificate)
-    client_certificate     = base64decode(kind_cluster.crewmeister.client_certificate)
-    client_key             = base64decode(kind_cluster.crewmeister.client_key)
-  }
-}
-
-# ─── Load local Docker image into kind ────────────────────────────────────────
-# kind clusters can't pull local images directly — this loads it in
-resource "null_resource" "load_image" {
-  depends_on = [kind_cluster.crewmeister]
-
-  triggers = {
-    image_tag    = var.app_image_tag
-    cluster_name = var.cluster_name
-  }
-
-  provisioner "local-exec" {
-    command = "kind load docker-image ${var.app_image_repo}:${var.app_image_tag} --name ${var.cluster_name}"
+    host                   = "https://${google_container_cluster.crewmeister.endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(google_container_cluster.crewmeister.master_auth[0].cluster_ca_certificate)
   }
 }
 
 # ─── Namespace ────────────────────────────────────────────────────────────────
 resource "kubernetes_namespace" "crewmeister" {
-  depends_on = [kind_cluster.crewmeister]
+  depends_on = [google_container_node_pool.crewmeister_nodes]
 
   metadata {
     name = var.namespace
@@ -92,19 +144,20 @@ resource "kubernetes_namespace" "crewmeister" {
 resource "helm_release" "crewmeister" {
   depends_on = [
     kubernetes_namespace.crewmeister,
-    null_resource.load_image,
+    google_sql_database_instance.crewmeister,
   ]
 
-  name       = "crewmeister"
-  chart      = "${path.module}/../helm/crewmeister"
-  namespace  = var.namespace
-  timeout    = 300
-  atomic     = true   # rolls back automatically on failure
-  wait       = true
+  name      = "crewmeister"
+  chart     = "${path.module}/../../helm/crewmeister"
+  namespace = var.namespace
+  timeout   = 300
+  atomic    = true
+  wait      = true
 
+  # Use GCP image instead of local
   set {
     name  = "image.repository"
-    value = var.app_image_repo
+    value = "${var.region}-docker.pkg.dev/${var.project_id}/crewmeister/crewmeister-app"
   }
 
   set {
@@ -114,6 +167,39 @@ resource "helm_release" "crewmeister" {
 
   set {
     name  = "image.pullPolicy"
-    value = "Never"   # image is already loaded into kind, never pull
+    value = "Always"
+  }
+
+  # Disable in-cluster MySQL (using Cloud SQL instead)
+  set {
+    name  = "mysql.enabled"
+    value = "false"
+  }
+
+  # Service type LoadBalancer for public access
+  set {
+    name  = "service.type"
+    value = "LoadBalancer"
+  }
+
+  # Cloud SQL connection details
+  set {
+    name  = "env.SPRING_DATASOURCE_URL"
+    value = "jdbc:mysql://${google_sql_database_instance.crewmeister.public_ip_address}:3306/challenge?createDatabaseIfNotExist=true"
+  }
+
+  set {
+    name  = "env.SPRING_DATASOURCE_WRITER_URL"
+    value = "jdbc:mysql://${google_sql_database_instance.crewmeister.public_ip_address}:3306/challenge?createDatabaseIfNotExist=true"
+  }
+
+  set {
+    name  = "env.SPRING_DATASOURCE_USERNAME"
+    value = "crewmeister"
+  }
+
+  set_sensitive {
+    name  = "env.SPRING_DATASOURCE_PASSWORD"
+    value = var.db_password
   }
 }
