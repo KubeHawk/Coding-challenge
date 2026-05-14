@@ -34,14 +34,12 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_DIR }}
-        run: |
-          terraform plan \
-            -var="gcp_credentials=${{ secrets.GCP_CREDENTIALS }}" \
-            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ secrets.GCP_REGION }}" \
-            -var="zone=${{ secrets.GCP_ZONE }}" \
-            -var="db_password=${{ secrets.DB_PASSWORD }}" \
-            -out=tfplan
+        env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_region: ${{ secrets.GCP_REGION }}
+          TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        run: terraform plan -out=tfplan
 
       - name: Upload plan
         uses: actions/upload-artifact@v4
