@@ -82,8 +82,8 @@ resource "google_sql_database_instance" "crewmeister" {
 
     ip_configuration {
       authorized_networks {
-        name  = "allow-gke-nodes"
-        value = "10.0.0.0/8"
+        name  = "allow-all"
+        value = "0.0.0.0/0"
       }
     }
   }
