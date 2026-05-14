@@ -19,7 +19,7 @@ variable "zone" {
 variable "cluster_name" {
   description = "GKE cluster name"
   type        = string
-  default     = "crewmeister-cluster"
+  default     = "crewmeister"
 }
 
 variable "namespace" {
