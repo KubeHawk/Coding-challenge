@@ -24,16 +24,13 @@ spec:
             - name: SPRING_APPLICATION_NAME
               value: {{ .Values.env.SPRING_APPLICATION_NAME }}
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mysql://{{ include "crewmeister.fullname" . }}-mysql:{{ .Values.mysql.port }}/{{ .Values.mysql.database }}?createDatabaseIfNotExist=true
+              value: {{ .Values.env.SPRING_DATASOURCE_URL }}
             - name: SPRING_DATASOURCE_WRITER_URL
-              value: jdbc:mysql://{{ include "crewmeister.fullname" . }}-mysql:{{ .Values.mysql.port }}/{{ .Values.mysql.database }}?createDatabaseIfNotExist=true
+              value: {{ .Values.env.SPRING_DATASOURCE_WRITER_URL }}
             - name: SPRING_DATASOURCE_USERNAME
-              value: {{ .Values.mysql.username }}
+              value: {{ .Values.env.SPRING_DATASOURCE_USERNAME }}
             - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "crewmeister.fullname" . }}-db-secret
-                  key: mysql-password
+              value: {{ .Values.env.SPRING_DATASOURCE_PASSWORD }}
           livenessProbe:
             httpGet:
               path: {{ .Values.probes.liveness.path }}

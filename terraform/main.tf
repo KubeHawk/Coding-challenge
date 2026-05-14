@@ -168,11 +168,6 @@ resource "helm_release" "crewmeister" {
   }
 
   set {
-    name  = "mysql.enabled"
-    value = "false"
-  }
-
-  set {
     name  = "service.type"
     value = "LoadBalancer"
   }
