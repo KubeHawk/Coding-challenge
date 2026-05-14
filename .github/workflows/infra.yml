@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  TF_DIR: terraform/gcp
+  TF_DIR: terraform
 
 jobs:
   init-and-plan:
