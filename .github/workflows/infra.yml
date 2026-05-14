@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  TF_DIR: terraform
+  TF_DIR: terraform/gcp
 
 jobs:
   init-and-plan:
@@ -21,13 +21,13 @@ jobs:
         with:
           terraform_version: "1.8.0"
 
-      - name: Write GCP credentials
-        run: echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/terraform-key.json
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: Terraform Init & Validate
         working-directory: ${{ env.TF_DIR }}
-        env:
-          GOOGLE_BACKEND_CREDENTIALS: /tmp/terraform-key.json
         run: |
           terraform init
           terraform validate
@@ -36,7 +36,7 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: |
           terraform plan \
-            -var="gcp_credentials=$(cat /tmp/terraform-key.json)" \
+            -var="gcp_credentials=${{ secrets.GCP_CREDENTIALS }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var="region=${{ secrets.GCP_REGION }}" \
             -var="zone=${{ secrets.GCP_ZONE }}" \
@@ -49,15 +49,11 @@ jobs:
           name: tfplan
           path: ${{ env.TF_DIR }}/tfplan
 
-      - name: Clean up credentials
-        if: always()
-        run: rm -f /tmp/terraform-key.json
-
   apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
     needs: init-and-plan
-    environment: production    # ← approval gate
+    environment: production
 
     steps:
       - uses: actions/checkout@v4
@@ -67,13 +63,13 @@ jobs:
         with:
           terraform_version: "1.8.0"
 
-      - name: Write GCP credentials
-        run: echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/terraform-key.json
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: Terraform Init
         working-directory: ${{ env.TF_DIR }}
-        env:
-          GOOGLE_BACKEND_CREDENTIALS: /tmp/terraform-key.json
         run: terraform init
 
       - name: Download plan
@@ -85,7 +81,3 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.TF_DIR }}
         run: terraform apply -auto-approve tfplan
-
-      - name: Clean up credentials
-        if: always()
-        run: rm -f /tmp/terraform-key.json

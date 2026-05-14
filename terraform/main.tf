@@ -16,7 +16,6 @@ terraform {
     }
   }
 
-  # Remote state stored in GCS bucket
   backend "gcs" {
     bucket = "crewmeister-terraform-state-496312"
     prefix = "terraform/state"
@@ -25,10 +24,9 @@ terraform {
 
 # ─── GCP Provider ─────────────────────────────────────────────────────────────
 provider "google" {
-  credentials = var.gcp_credentials
-  project     = var.project_id
-  region      = var.region
-  zone        = var.zone
+  project = var.project_id
+  region  = var.region
+  zone    = var.zone
 }
 
 # ─── GKE Cluster ──────────────────────────────────────────────────────────────
@@ -94,7 +92,7 @@ resource "google_sql_database_instance" "crewmeister" {
 
     ip_configuration {
       authorized_networks {
-        name  = "allow-gke"
+        name  = "allow-all"
         value = "0.0.0.0/0"
       }
     }
@@ -114,7 +112,7 @@ resource "google_sql_user" "crewmeister" {
   password = var.db_password
 }
 
-# ─── Kubernetes Provider (uses GKE cluster) ───────────────────────────────────
+# ─── Kubernetes & Helm Providers ──────────────────────────────────────────────
 data "google_client_config" "default" {}
 
 provider "kubernetes" {
@@ -154,7 +152,6 @@ resource "helm_release" "crewmeister" {
   atomic    = true
   wait      = true
 
-  # Use GCP image instead of local
   set {
     name  = "image.repository"
     value = "${var.region}-docker.pkg.dev/${var.project_id}/crewmeister/crewmeister-app"
@@ -170,19 +167,16 @@ resource "helm_release" "crewmeister" {
     value = "Always"
   }
 
-  # Disable in-cluster MySQL (using Cloud SQL instead)
   set {
     name  = "mysql.enabled"
     value = "false"
   }
 
-  # Service type LoadBalancer for public access
   set {
     name  = "service.type"
     value = "LoadBalancer"
   }
 
-  # Cloud SQL connection details
   set {
     name  = "env.SPRING_DATASOURCE_URL"
     value = "jdbc:mysql://${google_sql_database_instance.crewmeister.public_ip_address}:3306/challenge?createDatabaseIfNotExist=true"
