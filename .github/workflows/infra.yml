@@ -6,7 +6,11 @@ on:
   workflow_dispatch:
 
 env:
-  TF_DIR: terraform
+  TF_DIR: terraform/gcp
+  TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+  TF_VAR_region: ${{ secrets.GCP_REGION }}
+  TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+  TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
 jobs:
   init-and-plan:
@@ -35,10 +39,7 @@ jobs:
       - name: Terraform Plan
         working-directory: ${{ env.TF_DIR }}
         env:
-          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-          TF_VAR_region: ${{ secrets.GCP_REGION }}
-          TF_VAR_zone: ${{ secrets.GCP_ZONE }}
-          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_helm_chart_path: ${{ github.workspace }}/helm/crewmeister
         run: terraform plan -out=tfplan
 
       - name: Upload plan
@@ -78,4 +79,6 @@ jobs:
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_DIR }}
+        env:
+          TF_VAR_helm_chart_path: ${{ github.workspace }}/helm/crewmeister
         run: terraform apply -auto-approve tfplan
