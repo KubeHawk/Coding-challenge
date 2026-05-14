@@ -22,28 +22,16 @@ variable "cluster_name" {
   default     = "crewmeister"
 }
 
-variable "namespace" {
-  description = "Kubernetes namespace"
-  type        = string
-  default     = "crewmeister"
-}
-
 variable "machine_type" {
   description = "GKE node machine type"
   type        = string
-  default     = "e2-small"
+  default     = "e2-standard-2"
 }
 
 variable "node_count" {
   description = "Number of GKE nodes"
   type        = number
   default     = 1
-}
-
-variable "app_image_tag" {
-  description = "Docker image tag to deploy"
-  type        = string
-  default     = "latest"
 }
 
 variable "db_password" {

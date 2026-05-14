@@ -6,14 +6,6 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 5.0"
     }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.29"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.13"
-    }
   }
 
   backend "gcs" {
@@ -28,141 +20,49 @@ provider "google" {
   zone    = var.zone
 }
 
-resource "google_container_cluster" "crewmeister" {
-  name     = var.cluster_name
-  location = var.zone
-
-  remove_default_node_pool = true
-  initial_node_count       = 1
-  network                  = "default"
-  subnetwork               = "default"
-  deletion_protection      = false
+resource "google_project_service" "apis" {
+  for_each = toset([
+    "compute.googleapis.com",
+    "container.googleapis.com",
+    "sqladmin.googleapis.com",
+    "artifactregistry.googleapis.com",
+    "iam.googleapis.com",
+  ])
+  service            = each.key
+  disable_on_destroy = false
 }
 
-resource "google_container_node_pool" "crewmeister_nodes" {
-  name       = "${var.cluster_name}-node-pool"
-  location   = var.zone
-  cluster    = google_container_cluster.crewmeister.name
-  node_count = var.node_count
-
-  node_config {
-    machine_type = var.machine_type
-    disk_size_gb = 20
-    disk_type    = "pd-standard"
-    oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-  }
-
-  management {
-    auto_repair  = true
-    auto_upgrade = true
-  }
+module "vpc" {
+  source     = "./modules/vpc"
+  project_id = var.project_id
+  region     = var.region
+  depends_on = [google_project_service.apis]
 }
 
-resource "google_artifact_registry_repository" "crewmeister" {
-  location      = var.region
-  repository_id = "crewmeister"
-  format        = "DOCKER"
-  description   = "Crewmeister Docker images"
+module "gke" {
+  source       = "./modules/gke"
+  project_id   = var.project_id
+  region       = var.region
+  zone         = var.zone
+  cluster_name = var.cluster_name
+  machine_type = var.machine_type
+  node_count   = var.node_count
+  network      = module.vpc.network_name
+  subnetwork   = module.vpc.private_subnet_name
+  depends_on   = [module.vpc]
 }
 
-resource "google_sql_database_instance" "crewmeister" {
-  name             = "crewmeister-mysql"
-  database_version = "MYSQL_8_0"
-  region           = var.region
-
-  settings {
-    tier              = "db-f1-micro"
-    availability_type = "ZONAL"
-    disk_size         = 10
-    disk_type         = "PD_SSD"
-
-    backup_configuration {
-      enabled = false
-    }
-
-    ip_configuration {
-      authorized_networks {
-        name  = "allow-all"
-        value = "0.0.0.0/0"
-      }
-    }
-  }
-
-  deletion_protection = false
+module "cloudsql" {
+  source      = "./modules/cloudsql"
+  project_id  = var.project_id
+  region      = var.region
+  db_password = var.db_password
+  depends_on  = [google_project_service.apis]
 }
 
-resource "google_sql_database" "crewmeister" {
-  name     = "challenge"
-  instance = google_sql_database_instance.crewmeister.name
-}
-
-resource "google_sql_user" "crewmeister" {
-  name     = "crewmeister"
-  instance = google_sql_database_instance.crewmeister.name
-  password = var.db_password
-}
-
-data "google_client_config" "default" {}
-
-provider "kubernetes" {
-  host                   = "https://${google_container_cluster.crewmeister.endpoint}"
-  token                  = data.google_client_config.default.access_token
-  cluster_ca_certificate = base64decode(google_container_cluster.crewmeister.master_auth[0].cluster_ca_certificate)
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = "https://${google_container_cluster.crewmeister.endpoint}"
-    token                  = data.google_client_config.default.access_token
-    cluster_ca_certificate = base64decode(google_container_cluster.crewmeister.master_auth[0].cluster_ca_certificate)
-  }
-}
-
-resource "kubernetes_namespace" "crewmeister" {
-  depends_on = [google_container_node_pool.crewmeister_nodes]
-  metadata {
-    name = var.namespace
-  }
-}
-
-resource "helm_release" "crewmeister" {
-  depends_on = [
-    kubernetes_namespace.crewmeister,
-    google_sql_database_instance.crewmeister,
-  ]
-
-  name      = "crewmeister"
-  chart     = "${path.module}/../helm/crewmeister"
-  namespace = var.namespace
-  timeout   = 300
-  atomic    = true
-  wait      = true
-
-  # Dynamic: built from Terraform variables
-  set {
-    name  = "image.repository"
-    value = "${var.region}-docker.pkg.dev/${var.project_id}/crewmeister/crewmeister-app"
-  }
-
-  # Dynamic: changes per deployment
-  set {
-    name  = "image.tag"
-    value = var.app_image_tag
-  }
-
-  # Dynamic: only known after Cloud SQL is created
-  set {
-    name  = "env.SPRING_DATASOURCE_URL"
-    value = "jdbc:mysql://${google_sql_database_instance.crewmeister.public_ip_address}:3306/challenge?createDatabaseIfNotExist=true"
-  }
-  set {
-    name  = "env.SPRING_DATASOURCE_WRITER_URL"
-    value = "jdbc:mysql://${google_sql_database_instance.crewmeister.public_ip_address}:3306/challenge?createDatabaseIfNotExist=true"
-  }
-
-  # Sensitive: secret value from GitHub Secrets
-  set_sensitive {
-    name  = "env.SPRING_DATASOURCE_PASSWORD"
-    value = var.db_password
-  }
+module "artifact_registry" {
+  source     = "./modules/artifact-registry"
+  project_id = var.project_id
+  region     = var.region
+  depends_on = [google_project_service.apis]
 }

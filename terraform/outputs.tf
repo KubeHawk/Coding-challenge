@@ -1,25 +1,19 @@
 output "cluster_name" {
   description = "GKE cluster name"
-  value       = google_container_cluster.crewmeister.name
+  value       = module.gke.cluster_name
 }
 
-output "cluster_endpoint" {
-  description = "GKE cluster endpoint"
-  value       = google_container_cluster.crewmeister.endpoint
-  sensitive   = true
-}
-
-output "cloud_sql_ip" {
-  description = "Cloud SQL public IP"
-  value       = google_sql_database_instance.crewmeister.public_ip_address
+output "cluster_zone" {
+  description = "GKE cluster zone"
+  value       = module.gke.cluster_zone
 }
 
 output "artifact_registry_url" {
   description = "Artifact Registry URL"
-  value       = "${var.region}-docker.pkg.dev/${var.project_id}/crewmeister"
+  value       = module.artifact_registry.registry_url
 }
 
-output "app_url" {
-  description = "Run this to get the app's public IP after deployment"
-  value       = "kubectl get svc -n ${var.namespace} crewmeister-crewmeister -o jsonpath='{.status.loadBalancer.ingress[0].ip}'"
+output "cloud_sql_ip" {
+  description = "Cloud SQL public IP"
+  value       = module.cloudsql.cloud_sql_ip
 }
