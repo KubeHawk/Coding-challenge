@@ -18,7 +18,7 @@ services:
       start_period: 30s
 
   app:
-    build: .
+    image: ghcr.io/kubehawk/crewmeister-app:latest
     container_name: crewmeister-app
     restart: unless-stopped
     ports:
