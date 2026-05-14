@@ -11,7 +11,7 @@ service:
 
 resources:
   requests:
-    memory: "64Mi"
+    memory: "128Mi"
     cpu: "100m"
   limits:
     memory: "512Mi"
@@ -20,11 +20,11 @@ resources:
 probes:
   liveness:
     path: /actuator/health/liveness
-    initialDelaySeconds: 45
+    initialDelaySeconds: 90
     periodSeconds: 15
   readiness:
     path: /actuator/health/readiness
-    initialDelaySeconds: 30
+    initialDelaySeconds: 60
     periodSeconds: 10
 
 env:

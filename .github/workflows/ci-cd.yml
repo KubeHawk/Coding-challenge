@@ -13,7 +13,6 @@ jobs:
   push-image:
     name: Build & Push Image
     runs-on: ubuntu-latest
-    needs: build-and-test
 
     steps:
       - uses: actions/checkout@v4
