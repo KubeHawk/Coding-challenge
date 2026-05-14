@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  TF_DIR: terraform/gcp
+  TF_DIR: terraform
   TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
   TF_VAR_region: ${{ secrets.GCP_REGION }}
   TF_VAR_zone: ${{ secrets.GCP_ZONE }}
