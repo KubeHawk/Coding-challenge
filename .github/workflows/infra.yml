@@ -7,10 +7,6 @@ on:
 
 env:
   TF_DIR: terraform
-  TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
-  TF_VAR_region: ${{ secrets.GCP_REGION }}
-  TF_VAR_zone: ${{ secrets.GCP_ZONE }}
-  TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
 jobs:
   init-and-plan:
@@ -39,14 +35,12 @@ jobs:
       - name: Terraform Plan
         working-directory: ${{ env.TF_DIR }}
         env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_region: ${{ secrets.GCP_REGION }}
+          TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
           TF_VAR_helm_chart_path: ${{ github.workspace }}/helm/crewmeister
-        run: terraform plan -out=tfplan
-
-      - name: Upload plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan
-          path: ${{ env.TF_DIR }}/tfplan
+        run: terraform plan
 
   apply:
     name: Terraform Apply
@@ -71,14 +65,12 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: terraform init
 
-      - name: Download plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
-          path: ${{ env.TF_DIR }}
-
       - name: Terraform Apply
         working-directory: ${{ env.TF_DIR }}
         env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_region: ${{ secrets.GCP_REGION }}
+          TF_VAR_zone: ${{ secrets.GCP_ZONE }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
           TF_VAR_helm_chart_path: ${{ github.workspace }}/helm/crewmeister
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve
