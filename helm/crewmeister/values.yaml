@@ -1,31 +1,22 @@
-# ─── App ──────────────────────────────────────────────────────────────────────
 replicaCount: 1
 
 image:
-  repository: crewmeister-app   # local image name built with minikube/kind
+  repository: crewmeister-app
   tag: latest
-  pullPolicy: IfNotPresent       # use local image, don't pull from registry
+  pullPolicy: IfNotPresent
 
-# ─── Service ──────────────────────────────────────────────────────────────────
 service:
-  type: NodePort
+  type: LoadBalancer
   port: 8080
-  nodePort: 30080                # access via minikube ip:30080
 
-# ─── Ingress ──────────────────────────────────────────────────────────────────
-ingress:
-  enabled: false                 # enable if you add the NGINX ingress addon
-
-# ─── Resources ────────────────────────────────────────────────────────────────
 resources:
   requests:
-    memory: "256Mi"
-    cpu: "250m"
+    memory: "64Mi"
+    cpu: "100m"
   limits:
     memory: "512Mi"
     cpu: "500m"
 
-# ─── Health probes ────────────────────────────────────────────────────────────
 probes:
   liveness:
     path: /actuator/health/liveness
@@ -36,23 +27,9 @@ probes:
     initialDelaySeconds: 30
     periodSeconds: 10
 
-# ─── MySQL (runs as a pod inside the cluster) ─────────────────────────────────
-mysql:
-  enabled: true
-  image: mysql:8.0
-  database: challenge
-  username: crewmeister
-  # Passwords are in secrets.yaml — not here
-  port: 3306
-  resources:
-    requests:
-      memory: "256Mi"
-      cpu: "250m"
-    limits:
-      memory: "512Mi"
-      cpu: "500m"
-  storage: 1Gi
-
-# ─── Environment variables passed to the app ──────────────────────────────────
 env:
   SPRING_APPLICATION_NAME: crewmeister-challenge
+  SPRING_DATASOURCE_URL: ""
+  SPRING_DATASOURCE_WRITER_URL: ""
+  SPRING_DATASOURCE_USERNAME: ""
+  SPRING_DATASOURCE_PASSWORD: ""
