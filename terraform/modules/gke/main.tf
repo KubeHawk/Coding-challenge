@@ -1,6 +1,7 @@
-resource "google_container_cluster" "crewmeister" {
+resource "google_container_cluster" "main" {
   name       = var.cluster_name
   location   = var.zone
+  project    = var.project_id
   network    = var.network
   subnetwork = var.subnetwork
 
@@ -8,39 +9,34 @@ resource "google_container_cluster" "crewmeister" {
   initial_node_count       = 1
   networking_mode          = "VPC_NATIVE"
 
-  # Private nodes — no public IPs on nodes
   private_cluster_config {
     enable_private_nodes    = true
-    enable_private_endpoint = false
-    master_ipv4_cidr_block  = "192.168.0.0/28"
+    enable_private_endpoint = var.enable_private_endpoint
+    master_ipv4_cidr_block  = var.master_cidr
   }
 
   ip_allocation_policy {
-    cluster_secondary_range_name  = "k8s-pods"
-    services_secondary_range_name = "k8s-services"
+    cluster_secondary_range_name  = var.pods_range_name
+    services_secondary_range_name = var.services_range_name
   }
 
   release_channel {
-    channel = "REGULAR"
+    channel = var.release_channel
   }
 
-  deletion_protection = false
-  
-  addons_config {
-  http_load_balancing {
-    disabled = false   # ← required for Gateway API
+  gateway_api_config {
+    channel = "CHANNEL_STANDARD"
   }
+
+  deletion_protection = var.deletion_protection
+  resource_labels     = var.labels
 }
 
-gateway_api_config {
-  channel = "CHANNEL_STANDARD"   # ← enables Gateway API
-    }
-}
-
-resource "google_container_node_pool" "crewmeister_nodes" {
-  name       = "${var.cluster_name}-node-pool"
+resource "google_container_node_pool" "main" {
+  name       = var.node_pool_name
   location   = var.zone
-  cluster    = google_container_cluster.crewmeister.name
+  cluster    = google_container_cluster.main.name
+  project    = var.project_id
   node_count = var.node_count
 
   management {
@@ -50,8 +46,9 @@ resource "google_container_node_pool" "crewmeister_nodes" {
 
   node_config {
     machine_type = var.machine_type
-    disk_size_gb = 20
-    disk_type    = "pd-standard"
+    disk_size_gb = var.disk_size_gb
+    disk_type    = var.disk_type
     oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    labels       = var.labels
   }
 }

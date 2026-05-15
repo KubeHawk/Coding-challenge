@@ -1,45 +1,44 @@
 resource "google_compute_network" "vpc" {
-  name                    = "crewmeister-vpc"
-  routing_mode            = "REGIONAL"
+  name                    = var.network_name
+  routing_mode            = var.routing_mode
   auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "private" {
-  name                     = "crewmeister-private"
-  ip_cidr_range            = "10.0.32.0/19"
+  name                     = var.subnet_name
+  ip_cidr_range            = var.subnet_cidr
   region                   = var.region
   network                  = google_compute_network.vpc.id
   private_ip_google_access = true
 
   secondary_ip_range {
-    range_name    = "k8s-pods"
-    ip_cidr_range = "172.16.0.0/14"
+    range_name    = var.pods_range_name
+    ip_cidr_range = var.pods_cidr
   }
 
   secondary_ip_range {
-    range_name    = "k8s-services"
-    ip_cidr_range = "172.20.0.0/18"
+    range_name    = var.services_range_name
+    ip_cidr_range = var.services_cidr
   }
 }
 
 resource "google_compute_router" "router" {
-  name    = "crewmeister-router"
+  name    = var.router_name
   region  = var.region
   network = google_compute_network.vpc.id
 }
 
 resource "google_compute_address" "nat" {
-  name         = "crewmeister-nat-ip"
+  name         = var.nat_ip_name
   address_type = "EXTERNAL"
   network_tier = "PREMIUM"
   region       = var.region
 }
 
 resource "google_compute_router_nat" "nat" {
-  name   = "crewmeister-nat"
-  region = var.region
-  router = google_compute_router.router.name
-
+  name                               = var.nat_name
+  region                             = var.region
+  router                             = google_compute_router.router.name
   nat_ip_allocate_option             = "MANUAL_ONLY"
   source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS"
   nat_ips                            = [google_compute_address.nat.self_link]
