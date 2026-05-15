@@ -9,7 +9,7 @@ Expand the name of the chart.
 Create a default fully qualified app name.
 */}}
 {{- define "crewmeister.fullname" -}}
-{{- printf "%s-%s" .Release.Name .Chart.Name | trunc 63 | trimSuffix "-" }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*

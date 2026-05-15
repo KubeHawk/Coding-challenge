@@ -72,7 +72,6 @@ jobs:
         run: |
           helm upgrade --install crewmeister ./helm/crewmeister \
             --namespace crewmeister \
-            --create-namespace \
             --set image.repository="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/crewmeister/${{ env.IMAGE_NAME }}" \
             --set image.tag="${{ github.sha }}" \
             --set env.SPRING_DATASOURCE_URL="jdbc:mysql://${{ secrets.CLOUD_SQL_IP }}:3306/challenge?createDatabaseIfNotExist=true" \

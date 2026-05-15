@@ -6,7 +6,7 @@ image:
   pullPolicy: Always
 
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 8080
 
 resources:

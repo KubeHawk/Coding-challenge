@@ -25,6 +25,16 @@ resource "google_container_cluster" "crewmeister" {
   }
 
   deletion_protection = false
+  
+  addons_config {
+  http_load_balancing {
+    disabled = false   # ← required for Gateway API
+  }
+}
+
+gateway_api_config {
+  channel = "CHANNEL_STANDARD"   # ← enables Gateway API
+    }
 }
 
 resource "google_container_node_pool" "crewmeister_nodes" {
