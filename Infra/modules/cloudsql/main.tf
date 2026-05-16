@@ -25,3 +25,16 @@ resource "google_sql_database_instance" "main" {
     ignore_changes = [settings[0].disk_size]
   }
 }
+
+# ─── Database ─────────────────────────────────────────────────────────────────
+resource "google_sql_database" "main" {
+  name     = var.db_name
+  instance = google_sql_database_instance.main.name
+}
+
+# ─── User ─────────────────────────────────────────────────────────────────────
+resource "google_sql_user" "main" {
+  name     = var.db_user
+  instance = google_sql_database_instance.main.name
+  password = var.db_password
+}
