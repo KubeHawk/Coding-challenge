@@ -3,13 +3,14 @@ name: Infrastructure
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
   TF_DIR: Infra
 
 permissions:
   contents: read
-  pull-requests: write    # ← needed to post PR comments
+  pull-requests: write
 
 jobs:
   init-and-plan:
@@ -41,9 +42,11 @@ jobs:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
           TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
         run: |
-          terraform plan -no-color 2>&1 | tee plan-output.txt
-          echo "exitcode=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+          set +e
+          terraform plan -no-color -detailed-exitcode 2>&1 | tee plan-output.txt
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
+        shell: sh
 
       - name: Post Plan to PR
         uses: actions/github-script@v7
@@ -58,7 +61,12 @@ jobs:
               ? plan.substring(0, maxLength) + '\n... truncated'
               : plan;
 
-            const output = `#### 🔍 Terraform Plan
+            const exitcode = '${{ steps.plan.outputs.exitcode }}';
+            const status = exitcode === '0' ? '✅ No changes'
+                         : exitcode === '2' ? '⚠️ Changes detected'
+                         : '❌ Plan failed';
+
+            const output = `#### 🔍 Terraform Plan — ${status}
             <details><summary>Click to expand</summary>
 
             \`\`\`hcl
@@ -68,7 +76,6 @@ jobs:
 
             *Pushed by @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
 
-            // Delete previous plan comments
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -84,7 +91,6 @@ jobs:
               }
             }
 
-            // Post new plan comment
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -93,7 +99,7 @@ jobs:
             });
 
       - name: Fail if plan failed
-        if: steps.plan.outputs.exitcode != '0'
+        if: steps.plan.outputs.exitcode == '1'
         run: exit 1
 
   apply:
