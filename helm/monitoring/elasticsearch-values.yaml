@@ -4,7 +4,7 @@ nodeGroup: "master"
 replicas: 1
 minimumMasterNodes: 1
 
-# ─── This prevents the chart from adding cluster.initial_master_nodes env var ─
+# ─── This prevents the chart from adding cluster.initial_master_nodes env var
 clusterInitialMasterNodes: []
 
 esConfig:
