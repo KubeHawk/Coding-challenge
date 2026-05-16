@@ -2,7 +2,7 @@ name: Infrastructure
 
 on:
   pull_request:
-    branches: [main]
+    branches: [develop]
 
 env:
   TF_DIR: Infra
