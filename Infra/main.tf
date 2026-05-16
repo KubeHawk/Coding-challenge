@@ -161,10 +161,6 @@ module "monitoring" {
   kibana_values_file           = "${path.module}/../helm/monitoring/kibana-values.yaml"
   logstash_values_file         = "${path.module}/../helm/monitoring/logstash-values.yaml"
 
-  kibana_service_name         = "kibana-kibana"
-  kibana_data_view_title      = "crewmeister-logs-*"
-  kibana_data_view_time_field = "@timestamp"
-
   labels = local.labels
 
   depends_on = [module.gke]

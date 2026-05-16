@@ -57,31 +57,6 @@ variable "grafana_admin_password" {
   sensitive   = true
 }
 
-# ─── Kibana setup ─────────────────────────────────────────────────────────────
-variable "kibana_service_name" {
-  description = "Kibana service name inside the cluster"
-  type        = string
-  default     = "kibana-kibana"
-}
-
-variable "kibana_data_view_title" {
-  description = "Kibana data view index pattern title"
-  type        = string
-  default     = "logs-*"
-}
-
-variable "kibana_data_view_time_field" {
-  description = "Kibana data view time field"
-  type        = string
-  default     = "@timestamp"
-}
-
-variable "kibana_setup_timeout" {
-  description = "Timeout for Kibana setup job"
-  type        = string
-  default     = "10m"
-}
-
 # ─── Timeouts ─────────────────────────────────────────────────────────────────
 variable "prometheus_timeout" {
   description = "Timeout for kube-prometheus-stack deployment in seconds"
