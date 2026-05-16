@@ -20,6 +20,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8080
+              name: http
           env:
             - name: SPRING_APPLICATION_NAME
               value: {{ .Values.env.SPRING_APPLICATION_NAME }}
