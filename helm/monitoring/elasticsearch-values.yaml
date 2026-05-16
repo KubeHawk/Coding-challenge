@@ -4,19 +4,20 @@ nodeGroup: "master"
 replicas: 1
 minimumMasterNodes: 1
 
-# ─── Single node — must clear initial_master_nodes ───────────────────────────
-clusterInitialMasterNodes: []
+# ─── Override the cluster.initial_master_nodes env var set by the chart ───────
+extraEnvs:
+  - name: cluster.initial_master_nodes
+    value: ""
+  - name: discovery.type
+    value: single-node
+  - name: xpack.security.enabled
+    value: "false"
+  - name: xpack.security.transport.ssl.enabled
+    value: "false"
+  - name: xpack.security.http.ssl.enabled
+    value: "false"
 
-esConfig:
-  elasticsearch.yml: |
-    cluster.name: elasticsearch
-    network.host: 0.0.0.0
-    discovery.type: single-node
-    xpack.security.enabled: false
-    xpack.security.transport.ssl.enabled: false
-    xpack.security.http.ssl.enabled: false
-
-# ─── Readiness probe — yellow is fine for single node ────────────────────────
+# ─── Readiness probe ──────────────────────────────────────────────────────────
 readinessProbe:
   exec:
     command:
@@ -40,7 +41,6 @@ resources:
 
 esJavaOpts: "-Xmx512m -Xms512m"
 
-# ─── Persistence ──────────────────────────────────────────────────────────────
 persistence:
   enabled: true
   size: 5Gi
