@@ -69,4 +69,5 @@ jobs:
           TF_VAR_region: ${{ secrets.GCP_REGION }}
           TF_VAR_zone: ${{ secrets.GCP_ZONE }}
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
         run: terraform apply -auto-approve
