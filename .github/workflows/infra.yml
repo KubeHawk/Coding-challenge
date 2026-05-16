@@ -22,11 +22,13 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: Terraform Init & Validate
         working-directory: ${{ env.TF_DIR }}
         env:
           GOOGLE_BACKEND_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
         run: |
           terraform init
           terraform validate
@@ -53,11 +55,14 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+
 
       - name: Terraform Init
         working-directory: ${{ env.TF_DIR }}
         env:
           GOOGLE_BACKEND_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
         run: terraform init
 
       - name: Terraform Apply
