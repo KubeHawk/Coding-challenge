@@ -12,7 +12,7 @@ As a DevOps Engineer at Crewmeister, you will be in charge of several challengin
 
 In this challenge, you should use DevOps best practices to architect and implement the complete cycle of building, packaging, and deploying a Java application (specified later in this document). 
 
-The following are core technologies/tools that should be present in the solution:
+Thae following are core technologies/tools that should be present in the solution:
 
 - Dockerfile
 - Helm Chart
