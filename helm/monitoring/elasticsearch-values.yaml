@@ -4,12 +4,8 @@ nodeGroup: "master"
 replicas: 1
 minimumMasterNodes: 1
 
-# ─── Single node fix ──────────────────────────────────────────────────────────
-# Override only cluster.initial_master_nodes to empty
-# discovery.type single-node handles the rest
-extraEnvs:
-  - name: cluster.initial_master_nodes
-    value: ""
+# ─── This prevents the chart from adding cluster.initial_master_nodes env var ─
+clusterInitialMasterNodes: []
 
 esConfig:
   elasticsearch.yml: |
@@ -18,7 +14,6 @@ esConfig:
     xpack.security.transport.ssl.enabled: false
     xpack.security.http.ssl.enabled: false
 
-# ─── Readiness probe ──────────────────────────────────────────────────────────
 readinessProbe:
   exec:
     command:
@@ -31,7 +26,6 @@ readinessProbe:
   timeoutSeconds: 5
   failureThreshold: 3
 
-# ─── Resources ────────────────────────────────────────────────────────────────
 resources:
   requests:
     cpu: "100m"
