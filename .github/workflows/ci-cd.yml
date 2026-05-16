@@ -74,6 +74,7 @@ jobs:
       - name: Deploy Helm chart
         run: |
           helm upgrade --install crewmeister ./helm/crewmeister \
+            --create-namespace \
             --namespace crewmeister \
             --set image.repository="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/crewmeister/${{ env.IMAGE_NAME }}" \
             --set image.tag="${{ github.sha }}" \
