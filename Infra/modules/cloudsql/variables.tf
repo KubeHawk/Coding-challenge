@@ -21,7 +21,7 @@ variable "tier" {
 }
 
 variable "availability_type" {
-  description = "Cloud SQL availability type"
+  description = "ZONAL or REGIONAL"
   type        = string
   default     = "ZONAL"
 }
@@ -33,26 +33,15 @@ variable "disk_size" {
 }
 
 variable "disk_type" {
-  description = "Disk type"
+  description = "PD_SSD or PD_HDD"
   type        = string
   default     = "PD_SSD"
 }
 
 variable "backup_enabled" {
-  description = "Enable backups"
+  description = "Enable automated backups"
   type        = bool
   default     = false
-}
-
-variable "authorized_network" {
-  description = "Authorized network CIDR"
-  type        = string
-}
-
-variable "authorized_network_name" {
-  description = "Authorized network name"
-  type        = string
-  default     = "allow-gke-subnet"
 }
 
 variable "deletion_protection" {

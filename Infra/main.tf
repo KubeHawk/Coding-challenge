@@ -119,8 +119,6 @@ module "cloudsql" {
   disk_size               = 10
   disk_type               = "PD_SSD"
   backup_enabled          = false
-  authorized_network      = module.vpc.subnet_cidr
-  authorized_network_name = "allow-gke-subnet"
   deletion_protection     = false
   db_name                 = "challenge"
   db_user                 = "crewmeister"

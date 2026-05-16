@@ -15,23 +15,13 @@ resource "google_sql_database_instance" "main" {
     }
 
     ip_configuration {
-      authorized_networks {
-        name  = var.authorized_network_name
-        value = var.authorized_network
-      }
+      ipv4_enabled = true
     }
   }
 
   deletion_protection = var.deletion_protection
-}
 
-resource "google_sql_database" "main" {
-  name     = var.db_name
-  instance = google_sql_database_instance.main.name
-}
-
-resource "google_sql_user" "main" {
-  name     = var.db_user
-  instance = google_sql_database_instance.main.name
-  password = var.db_password
+  lifecycle {
+    ignore_changes = [settings[0].disk_size]
+  }
 }
