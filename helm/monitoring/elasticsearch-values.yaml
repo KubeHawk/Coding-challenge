@@ -46,5 +46,5 @@ persistence:
   enabled: true
   size: 5Gi
 
-# ─── Anti-affinity (disable for single node) ─────────────────────────────────
+# ─── Anti-affinity (disable for single nod) ─────────────────────────────────
 antiAffinity: "soft"
