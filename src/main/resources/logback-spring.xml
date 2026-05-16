@@ -14,7 +14,7 @@
 
     <springProfile name="logstash">
         <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-            <destination>logstash:5000</destination>
+            <destination>logstash-logstash.monitoring.svc.cluster.local:5000</destination>
             <reconnectionDelay>10 seconds</reconnectionDelay>
             <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
         </appender>

@@ -30,3 +30,4 @@ probes:
 env:
   SPRING_APPLICATION_NAME: crewmeister-challenge
   SPRING_DATASOURCE_USERNAME: crewmeister
+  SPRING_PROFILES_ACTIVE: logstash 

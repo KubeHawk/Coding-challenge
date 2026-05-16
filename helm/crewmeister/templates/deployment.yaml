@@ -30,6 +30,8 @@ spec:
               value: {{ .Values.env.SPRING_DATASOURCE_WRITER_URL }}
             - name: SPRING_DATASOURCE_USERNAME
               value: {{ .Values.env.SPRING_DATASOURCE_USERNAME }}
+            - name: SPRING_PROFILES_ACTIVE
+              value: {{ .Values.env.SPRING_PROFILES_ACTIVE }}
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
