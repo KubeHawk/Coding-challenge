@@ -59,6 +59,7 @@ resource "google_project_service" "apis" {
     "sqladmin.googleapis.com",
     "artifactregistry.googleapis.com",
     "iam.googleapis.com",
+    "servicenetworking.googleapis.com",
   ])
   service            = each.key
   disable_on_destroy = false
@@ -82,6 +83,23 @@ module "vpc" {
   labels              = local.labels
 
   depends_on = [google_project_service.apis]
+}
+
+# Reserve an IP range in your VPC for Google-managed services
+resource "google_compute_global_address" "private_ip_range" {
+  name          = "google-managed-services-range"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = module.vpc.network_self_link
+}
+
+# Peer your VPC with Google's service network
+resource "google_service_networking_connection" "private_vpc_connection" {
+  network                 = module.vpc.network_self_link
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_ip_range.name]
+  depends_on              = [google_project_service.apis]
 }
 
 module "gke" {
@@ -111,21 +129,22 @@ module "gke" {
 module "cloudsql" {
   source = "./modules/cloudsql"
 
-  instance_name           = "${var.cluster_name}-mysql"
-  database_version        = "MYSQL_8_0"
-  region                  = var.region
-  tier                    = "db-f1-micro"
-  availability_type       = "ZONAL"
-  disk_size               = 10
-  disk_type               = "PD_SSD"
-  backup_enabled          = false
-  deletion_protection     = false
-  db_name                 = "challenge"
-  db_user                 = "crewmeister"
-  db_password             = var.db_password
-  labels                  = local.labels
+  instance_name       = "${var.cluster_name}-mysql"
+  database_version    = "MYSQL_8_0"
+  region              = var.region
+  tier                = "db-f1-micro"
+  availability_type   = "ZONAL"
+  disk_size           = 10
+  disk_type           = "PD_SSD"
+  backup_enabled      = false
+  deletion_protection = false
+  db_name             = "challenge"
+  db_user             = "crewmeister"
+  db_password         = var.db_password
+  vpc_network         = module.vpc.network_self_link  # ← pass VPC
+  labels              = local.labels
 
-  depends_on = [google_project_service.apis]
+  depends_on = [google_project_service.apis, module.vpc]
 }
 
 module "artifact_registry" {

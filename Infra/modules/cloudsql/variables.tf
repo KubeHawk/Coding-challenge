@@ -71,3 +71,8 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "vpc_network" {
+  description = "VPC network self link for private IP"
+  type        = string
+}
