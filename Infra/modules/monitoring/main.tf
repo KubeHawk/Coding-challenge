@@ -80,6 +80,7 @@ resource "helm_release" "kibana" {
   timeout    = var.kibana_timeout
   atomic     = true
   wait       = true
+  cleanup_on_fail = true
 
   values = [file(var.kibana_values_file)]
 }

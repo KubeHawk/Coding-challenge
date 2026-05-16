@@ -1,12 +1,21 @@
-elasticsearchHosts: "http://elasticsearch-master:9200"
+elasticsearchHosts: "https://elasticsearch-master:9200"
+elasticsearchCertificateSecret: "elasticsearch-master-certs"
+elasticsearchCertificateAuthoritiesFile: "ca.crt"
+
+readinessProbe:
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  failureThreshold: 10
+  successThreshold: 1
+  timeoutSeconds: 5
 
 resources:
   requests:
     cpu: "100m"
-    memory: "256Mi"
+    memory: "1Gi"
   limits:
-    cpu: "500m"
-    memory: "512Mi"
+    cpu: "1000m"
+    memory: "2Gi"
 
 service:
   type: LoadBalancer

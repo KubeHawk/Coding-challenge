@@ -2,24 +2,7 @@ clusterName: "elasticsearch"
 nodeGroup: "master"
 replicas: 1
 minimumMasterNodes: 1
-clusterInitialMasterNodes: []   # ← this prevents the env var from being set
-esConfig:
-  elasticsearch.yml: |
-    discovery.type: single-node
-    xpack.security.enabled: false
-    xpack.security.transport.ssl.enabled: false
-    xpack.security.http.ssl.enabled: false
-readinessProbe:
-  exec:
-    command:
-      - bash
-      - -c
-      - |
-        curl -sf http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s || exit 1
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
+
 resources:
   requests:
     cpu: "100m"
@@ -27,8 +10,11 @@ resources:
   limits:
     cpu: "1000m"
     memory: "1Gi"
+
 esJavaOpts: "-Xmx512m -Xms512m"
+
 persistence:
   enabled: true
   size: 5Gi
+
 antiAffinity: "soft"
