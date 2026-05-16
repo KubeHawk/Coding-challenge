@@ -3,15 +3,16 @@ replicaCount: 1
 image:
   repository: crewmeister-app
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 8080
+  name: http
 
 resources:
   requests:
-    memory: "64Mi"
+    memory: "128Mi"
     cpu: "100m"
   limits:
     memory: "512Mi"
@@ -20,16 +21,14 @@ resources:
 probes:
   liveness:
     path: /actuator/health/liveness
-    initialDelaySeconds: 45
+    initialDelaySeconds: 90
     periodSeconds: 15
   readiness:
     path: /actuator/health/readiness
-    initialDelaySeconds: 30
+    initialDelaySeconds: 60
     periodSeconds: 10
 
 env:
   SPRING_APPLICATION_NAME: crewmeister-challenge
-  SPRING_DATASOURCE_URL: ""
-  SPRING_DATASOURCE_WRITER_URL: ""
-  SPRING_DATASOURCE_USERNAME: ""
-  SPRING_DATASOURCE_PASSWORD: ""
+  SPRING_DATASOURCE_USERNAME: crewmeister
+  SPRING_PROFILES_ACTIVE: logstash 

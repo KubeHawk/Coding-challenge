@@ -22,16 +22,10 @@ variable "cluster_name" {
   default     = "crewmeister"
 }
 
-variable "namespace" {
-  description = "Kubernetes namespace"
-  type        = string
-  default     = "crewmeister"
-}
-
 variable "machine_type" {
   description = "GKE node machine type"
   type        = string
-  default     = "e2-small"
+  default     = "e2-standard-2"
 }
 
 variable "node_count" {
@@ -40,14 +34,14 @@ variable "node_count" {
   default     = 1
 }
 
-variable "app_image_tag" {
-  description = "Docker image tag to deploy"
-  type        = string
-  default     = "latest"
-}
-
 variable "db_password" {
   description = "Cloud SQL MySQL password"
+  type        = string
+  sensitive   = true
+}
+
+variable "grafana_admin_password" {
+  description = "Grafana admin password"
   type        = string
   sensitive   = true
 }

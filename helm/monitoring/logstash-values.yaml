@@ -1,0 +1,61 @@
+logstashConfig:
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    xpack.monitoring.enabled: false
+
+logstashPipeline:
+  logstash.conf: |
+    input {
+      tcp {
+        port  => 5000
+        codec => json_lines
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => ["https://elasticsearch-master:9200"]
+        index => "crewmeister-logs-%{+YYYY.MM.dd}"
+        ilm_enabled => false
+        user => "${ELASTICSEARCH_USERNAME}"
+        password => "${ELASTICSEARCH_PASSWORD}"
+        ssl => true
+        cacert => "/usr/share/logstash/config/certs/ca.crt"
+        ssl_certificate_verification => true
+      }
+    }
+
+# Mount the Elasticsearch CA cert so Logstash can verify TLS
+secretMounts:
+  - name: elasticsearch-certs
+    secretName: elasticsearch-master-certs
+    path: /usr/share/logstash/config/certs
+
+# Inject Elasticsearch credentials from the secret created by the ES chart
+extraEnvs:
+  - name: ELASTICSEARCH_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-master-credentials
+        key: username
+  - name: ELASTICSEARCH_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-master-credentials
+        key: password
+
+service:
+  type: ClusterIP
+  ports:
+    - name: tcp-input
+      port: 5000
+      protocol: TCP
+      targetPort: 5000
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"

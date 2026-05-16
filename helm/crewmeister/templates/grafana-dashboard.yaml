@@ -1,0 +1,11 @@
+# helm/crewmeister/templates/grafana-dashboard.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "crewmeister.fullname" . }}-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  spring-boot.json: |
+    {{ .Files.Get "dashboards/spring-boot.json" | nindent 4 }}
