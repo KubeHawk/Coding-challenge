@@ -144,6 +144,7 @@ module "cloudsql" {
   db_password         = var.db_password
   vpc_network         = module.vpc.network_self_link  # ← pass VPC
   labels              = local.labels
+  allocated_ip_range  = google_compute_global_address.private_ip_range.name
 
   depends_on = [google_project_service.apis, module.vpc, google_service_networking_connection.private_vpc_connection]
 }

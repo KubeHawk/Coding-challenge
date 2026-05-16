@@ -17,6 +17,8 @@ resource "google_sql_database_instance" "main" {
     ip_configuration {
       ipv4_enabled    = false          # ← disable public IP
       private_network = var.vpc_network # ← use VPC private IP
+      enable_private_path_for_google_cloud_services = true
+      allocated_ip_range                            = var.allocated_ip_range
     }
   }
 

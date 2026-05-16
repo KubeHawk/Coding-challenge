@@ -76,3 +76,9 @@ variable "vpc_network" {
   description = "VPC network self link for private IP"
   type        = string
 }
+
+variable "allocated_ip_range" {
+  description = "Name of the reserved IP range for private services (google_compute_global_address)"
+  type        = string
+  default     = null
+}
