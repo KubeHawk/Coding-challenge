@@ -92,6 +92,7 @@ resource "google_compute_global_address" "private_ip_range" {
   address_type  = "INTERNAL"
   prefix_length = 16
   network       = module.vpc.network_self_link
+  depends_on    = [module.vpc]
 }
 
 # Peer your VPC with Google's service network
@@ -144,7 +145,7 @@ module "cloudsql" {
   vpc_network         = module.vpc.network_self_link  # ← pass VPC
   labels              = local.labels
 
-  depends_on = [google_project_service.apis, module.vpc]
+  depends_on = [google_project_service.apis, module.vpc, google_service_networking_connection.private_vpc_connection]
 }
 
 module "artifact_registry" {

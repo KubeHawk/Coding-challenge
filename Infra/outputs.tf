@@ -14,6 +14,6 @@ output "artifact_registry_url" {
 }
 
 output "cloud_sql_ip" {
-  description = "Cloud SQL public IP"
-  value       = module.cloudsql.cloud_sql_ip
+  description = "Cloud SQL private IP"
+  value       = google_sql_database_instance.main.private_ip_address
 }
