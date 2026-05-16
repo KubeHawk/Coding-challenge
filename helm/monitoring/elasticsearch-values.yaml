@@ -1,8 +1,35 @@
+# helm/monitoring/elasticsearch-values.yaml
+
+clusterName: "elasticsearch"
+nodeGroup: "master"
+
 replicas: 1
 minimumMasterNodes: 1
 
-esJavaOpts: "-Xmx512m -Xms512m"
+# ─── Single node settings ─────────────────────────────────────────────────────
+esConfig:
+  elasticsearch.yml: |
+    cluster.name: elasticsearch
+    network.host: 0.0.0.0
+    discovery.type: single-node
+    xpack.security.enabled: false
+    xpack.security.transport.ssl.enabled: false
+    xpack.security.http.ssl.enabled: false
 
+# ─── Override readiness probe to accept yellow status ────────────────────────
+readinessProbe:
+  exec:
+    command:
+      - bash
+      - -c
+      - |
+        curl -sf http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s || exit 1
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# ─── Resources ────────────────────────────────────────────────────────────────
 resources:
   requests:
     cpu: "100m"
@@ -11,20 +38,13 @@ resources:
     cpu: "1000m"
     memory: "1Gi"
 
-volumeClaimTemplate:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
+# ─── JVM heap ─────────────────────────────────────────────────────────────────
+esJavaOpts: "-Xmx512m -Xms512m"
 
-service:
-  type: ClusterIP
+# ─── Persistence ──────────────────────────────────────────────────────────────
+persistence:
+  enabled: true
+  size: 5Gi
 
-esConfig:
-  elasticsearch.yml: |
-    xpack.security.enabled: false
-    xpack.security.http.ssl.enabled: false
-    xpack.security.transport.ssl.enabled: false
-
-protocol: http
+# ─── Anti-affinity (disable for single node) ─────────────────────────────────
+antiAffinity: "soft"
