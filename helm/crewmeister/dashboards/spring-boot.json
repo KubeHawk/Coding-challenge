@@ -21,7 +21,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-boot\"}[1m])) by (uri, method)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"crewmeister\"}[1m])) by (uri, method)",
           "legendFormat": "{{method}} {{uri}}",
           "refId": "A"
         }
@@ -45,13 +45,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-boot\", status=~\"5..\"}[1m])) by (uri)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"crewmeister\", status=~\"5..\"}[1m])) by (uri)",
           "legendFormat": "5xx - {{uri}}",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-boot\", status=~\"4..\"}[1m])) by (uri)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"crewmeister\", status=~\"4..\"}[1m])) by (uri)",
           "legendFormat": "4xx - {{uri}}",
           "refId": "B"
         }
@@ -75,13 +75,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"spring-boot\"}[1m])) by (le, uri))",
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"crewmeister\"}[1m])) by (le, uri))",
           "legendFormat": "p99 - {{uri}}",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"spring-boot\"}[1m])) by (le, uri))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"crewmeister\"}[1m])) by (le, uri))",
           "legendFormat": "p95 - {{uri}}",
           "refId": "B"
         }
@@ -105,13 +105,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(jvm_memory_used_bytes{job=\"spring-boot\", area=\"heap\"}) by (id)",
+          "expr": "sum(jvm_memory_used_bytes{job=\"crewmeister\", area=\"heap\"}) by (id)",
           "legendFormat": "Used - {{id}}",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(jvm_memory_max_bytes{job=\"spring-boot\", area=\"heap\"}) by (id)",
+          "expr": "sum(jvm_memory_max_bytes{job=\"crewmeister\", area=\"heap\"}) by (id)",
           "legendFormat": "Max - {{id}}",
           "refId": "B"
         }
@@ -137,13 +137,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "process_cpu_usage{job=\"spring-boot\"}",
+          "expr": "process_cpu_usage{job=\"crewmeister\"}",
           "legendFormat": "Process CPU",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "system_cpu_usage{job=\"spring-boot\"}",
+          "expr": "system_cpu_usage{job=\"crewmeister\"}",
           "legendFormat": "System CPU",
           "refId": "B"
         }
@@ -167,25 +167,25 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "hikaricp_connections_active{job=\"spring-boot\"}",
+          "expr": "hikaricp_connections_active{job=\"crewmeister\"}",
           "legendFormat": "Active",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "hikaricp_connections_idle{job=\"spring-boot\"}",
+          "expr": "hikaricp_connections_idle{job=\"crewmeister\"}",
           "legendFormat": "Idle",
           "refId": "B"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "hikaricp_connections_max{job=\"spring-boot\"}",
+          "expr": "hikaricp_connections_max{job=\"crewmeister\"}",
           "legendFormat": "Max",
           "refId": "C"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "hikaricp_connections_pending{job=\"spring-boot\"}",
+          "expr": "hikaricp_connections_pending{job=\"crewmeister\"}",
           "legendFormat": "Pending",
           "refId": "D"
         }
