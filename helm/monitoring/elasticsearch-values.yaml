@@ -1,12 +1,12 @@
-# helm/monitoring/elasticsearch-values.yaml
-
 clusterName: "elasticsearch"
 nodeGroup: "master"
 
 replicas: 1
 minimumMasterNodes: 1
 
-# ─── Single node settings ─────────────────────────────────────────────────────
+# ─── Single node — must clear initial_master_nodes ───────────────────────────
+clusterInitialMasterNodes: []
+
 esConfig:
   elasticsearch.yml: |
     cluster.name: elasticsearch
@@ -16,7 +16,7 @@ esConfig:
     xpack.security.transport.ssl.enabled: false
     xpack.security.http.ssl.enabled: false
 
-# ─── Override readiness probe to accept yellow status ────────────────────────
+# ─── Readiness probe — yellow is fine for single node ────────────────────────
 readinessProbe:
   exec:
     command:
@@ -38,7 +38,6 @@ resources:
     cpu: "1000m"
     memory: "1Gi"
 
-# ─── JVM heap ─────────────────────────────────────────────────────────────────
 esJavaOpts: "-Xmx512m -Xms512m"
 
 # ─── Persistence ──────────────────────────────────────────────────────────────
@@ -46,5 +45,4 @@ persistence:
   enabled: true
   size: 5Gi
 
-# ─── Anti-affinity (disable for single nod) ─────────────────────────────────
 antiAffinity: "soft"
