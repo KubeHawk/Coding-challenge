@@ -4,18 +4,19 @@ nodeGroup: "master"
 replicas: 1
 minimumMasterNodes: 1
 
-# ─── Override the cluster.initial_master_nodes env var set by the chart ───────
+# ─── Single node fix ──────────────────────────────────────────────────────────
+# Override only cluster.initial_master_nodes to empty
+# discovery.type single-node handles the rest
 extraEnvs:
   - name: cluster.initial_master_nodes
     value: ""
-  - name: discovery.type
-    value: single-node
-  - name: xpack.security.enabled
-    value: "false"
-  - name: xpack.security.transport.ssl.enabled
-    value: "false"
-  - name: xpack.security.http.ssl.enabled
-    value: "false"
+
+esConfig:
+  elasticsearch.yml: |
+    discovery.type: single-node
+    xpack.security.enabled: false
+    xpack.security.transport.ssl.enabled: false
+    xpack.security.http.ssl.enabled: false
 
 # ─── Readiness probe ──────────────────────────────────────────────────────────
 readinessProbe:
