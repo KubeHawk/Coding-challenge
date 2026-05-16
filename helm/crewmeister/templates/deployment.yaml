@@ -29,7 +29,6 @@ spec:
               value: {{ .Values.env.SPRING_DATASOURCE_WRITER_URL }}
             - name: SPRING_DATASOURCE_USERNAME
               value: {{ .Values.env.SPRING_DATASOURCE_USERNAME }}
-            # Fix #2: Password from Kubernetes Secret
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:

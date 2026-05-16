@@ -6,6 +6,14 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 5.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.29"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.13"
+    }
   }
 
   backend "gcs" {
@@ -18,6 +26,22 @@ provider "google" {
   project = var.project_id
   region  = var.region
   zone    = var.zone
+}
+
+data "google_client_config" "default" {}
+
+provider "kubernetes" {
+  host                   = "https://${module.gke.cluster_endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(module.gke.cluster_ca_certificate)
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = "https://${module.gke.cluster_endpoint}"
+    token                  = data.google_client_config.default.access_token
+    cluster_ca_certificate = base64decode(module.gke.cluster_ca_certificate)
+  }
 }
 
 locals {
@@ -125,27 +149,22 @@ module "monitoring" {
 
   namespace = "monitoring"
 
-  # Chart versions
   prometheus_stack_version = "58.2.2"
   elasticsearch_version    = "8.5.1"
   kibana_version           = "8.5.1"
   logstash_version         = "8.5.1"
 
-  # Grafana
   grafana_admin_password = var.grafana_admin_password
 
-  # Values files
   prometheus_stack_values_file = "${path.module}/../helm/monitoring/kube-prometheus-stack-values.yaml"
   elasticsearch_values_file    = "${path.module}/../helm/monitoring/elasticsearch-values.yaml"
   kibana_values_file           = "${path.module}/../helm/monitoring/kibana-values.yaml"
   logstash_values_file         = "${path.module}/../helm/monitoring/logstash-values.yaml"
 
-  # Kibana setup
   kibana_service_name         = "kibana-kibana"
   kibana_data_view_title      = "crewmeister-logs-*"
   kibana_data_view_time_field = "@timestamp"
 
-  # Labels
   labels = local.labels
 
   depends_on = [module.gke]
