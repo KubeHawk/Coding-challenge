@@ -2,8 +2,7 @@ name: Infrastructure
 
 on:
   pull_request:
-    branches: [develop]
-  workflow_dispatch:
+    branches: [main]
 
 env:
   TF_DIR: Infra
