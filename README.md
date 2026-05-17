@@ -214,12 +214,12 @@ Helm releases deployed to the `monitoring` namespace:
 
 | Variable | Default | Sensitive |
 |---|---|---|
-| `project_id` | `crewmeister-496312` |, |
-| `region` | `europe-west1` |, |
-| `zone` | `europe-west1-b` |, |
-| `cluster_name` | `crewmeister` |, |
-| `machine_type` | `e2-standard-2` |, |
-| `node_count` | `1` |, |
+| `project_id` | `crewmeister-496312` | NO |
+| `region` | `europe-west1` | NO |
+| `zone` | `europe-west1-b` | NO |
+| `cluster_name` | `crewmeister` | NO |
+| `machine_type` | `e2-standard-2` | NO |
+| `node_count` | `1` | NO |
 | `db_password` | required | ✅ |
 | `grafana_admin_password` | required | ✅ |
 
@@ -464,20 +464,6 @@ Open any PR, `ci-cd.yml` handles the rest.
 | `DB_PASSWORD` | MySQL password for `crewmeister` user |
 | `CLOUD_SQL_IP` | Output of `terraform output cloud_sql_ip` |
 | `GRAFANA_ADMIN_PASSWORD` | Grafana admin password |
-
----
-
-## Design Decisions
-
-**Private topology over simplicity.** Choosing private GKE nodes and private Cloud SQL adds operational complexity (VPC peering, Cloud NAT, no direct DB access) but eliminates entire attack categories at the network layer, no public IPs means no exposure surface, not just a restricted one.
-
-**Helm over raw manifests.** `helm upgrade --install` is idempotent and atomic. A failed rollout triggers automatic rollback. Raw `kubectl apply` doesn't provide either guarantee, important when CI runs on every PR.
-
-**ELK alongside Prometheus, not instead.** Prometheus aggregates numeric signals, request rate, latency percentiles, heap usage. Elasticsearch stores discrete log events. They answer different questions: Prometheus tells you *that* something is wrong, logs tell you *why*. Replacing one with the other is a false economy at any meaningful traffic volume.
-
-**`sensitive = true` on Terraform variables.** Sensitive variables are redacted from plan and apply output. Combined with `TF_VAR_*` injection from GitHub Secrets, never written to any `.tf` file, this closes the most common secret-in-repo vulnerability pattern.
-
-**`exit-code: 0` on Trivy.** Known CVEs in the current dependency tree (Tomcat 10.1.31, fixable via Spring Boot 3.3.11+) would permanently break the pipeline until resolved. Decoupling the scan from the gate, results visible in GitHub Security, pipeline unblocked, allows the team to track and remediate on a deliberate schedule rather than under pipeline pressure.
 
 ---
 
