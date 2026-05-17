@@ -1,6 +1,6 @@
-# Crewmeister DevOps Challenge
+# Crewmeister, DevOps Challenge
 
-A production-grade DevOps implementation for a Spring Boot application on Google Cloud Platform (GCP), featuring automated CI/CD pipelines, Infrastructure as Code, Kubernetes deployment, and a full observability stack.
+> Complete lifecycle implementation of a Spring Boot user management API on GCP, containerized, infrastructure-as-code, Kubernetes-native, fully automated CI/CD, and production-grade observability.
 
 ---
 
@@ -19,158 +19,141 @@ A production-grade DevOps implementation for a Spring Boot application on Google
 - [Deployment Guide](#deployment-guide)
 - [GitHub Secrets Reference](#github-secrets-reference)
 - [Design Decisions](#design-decisions)
+- [Points of Improvement](#points-of-improvement)
 
 ---
 
 ## Overview
 
-This project containerizes and deploys a Spring Boot REST API to a private GKE cluster on GCP. Everything — from cloud infrastructure to Kubernetes manifests — is managed as code and automated through GitHub Actions.
+This project implements the full DevOps lifecycle for a Spring Boot REST API, from local development to production on GCP. Every layer, networking, compute, database, deployment, observability, is defined as code and automated through GitHub Actions pipelines.
 
-**Tech stack at a glance:**
+```
+Pull Request opened
+       │
+       ├─ ci-cd.yml ──► Build → Trivy scan → Push → Helm deploy
+       └─ infra.yml ──► Terraform plan → PR comment → Manual approval → Apply
+```
 
-| Layer | Technology |
+| Layer | Stack |
 |---|---|
-| Application | Spring Boot 3.3.5, Java 17, MySQL 8.0, Flyway |
-| Containerization | Docker (multi-stage build), Artifact Registry |
-| Infrastructure | Terraform 1.8, GCP (GKE, Cloud SQL, VPC, NAT) |
-| Kubernetes | Helm 3, Gateway API, ServiceMonitor, HealthCheckPolicy |
+| Application | Spring Boot 3.3.5 · Java 17 · MySQL 8.0 · Flyway |
+| Container | Docker multi-stage · GCP Artifact Registry |
+| Infrastructure | Terraform 1.8 · GKE · Cloud SQL · VPC · Cloud NAT |
+| Kubernetes | Helm 3 · Gateway API · ServiceMonitor · HealthCheckPolicy |
 | CI/CD | GitHub Actions |
-| Security scanning | Trivy |
-| Metrics | Prometheus + Grafana (kube-prometheus-stack) |
-| Logging | Logstash + Elasticsearch + Kibana (ELK) |
+| Security | Trivy · K8s Secrets · Private networking |
+| Observability | Prometheus · Grafana · Elasticsearch · Logstash · Kibana |
 
 ---
 
 ## Architecture
 
-The diagrams below illustrate the full system.
+All workloads run in a fully private topology. GKE nodes and Cloud SQL have no public IPs, egress flows through Cloud NAT, ingress through a managed L7 Gateway.
 
-### Infrastructure architecture
-
-![Infrastructure Architecture](docs/Architectures.png)
+![Infrastructure Architecture](docs/Architecture.png)
 
 ## Repository Structure
 
 ```
 .
-├── .github/
-│   └── workflows/
-│       ├── ci-cd.yml          # Build, scan, push image + Helm deploy
-│       └── infra.yml          # Terraform plan on PR, apply on approval
+├── .github/workflows/
+│   ├── ci-cd.yml                   # Build · Scan · Push · Helm deploy
+│   └── infra.yml                   # Terraform plan → PR comment → apply
 │
-├── src/                       # Spring Boot application source code
-│   └── main/
-│       └── resources/
-│           ├── application.yml        # App configuration (env-var driven)
-│           └── logback-spring.xml     # JSON logging + Logstash TCP appender
+├── src/main/resources/
+│   ├── application.yml             # 12-factor config, fully env-var driven
+│   └── logback-spring.xml          # JSON console + Logstash TCP (logstash profile)
 │
 ├── helm/
-│   ├── crewmeister/           # Application Helm chart
+│   ├── crewmeister/                # Application chart
 │   │   ├── Chart.yaml
-│   │   ├── values.yaml        # Default values (non-sensitive)
+│   │   ├── values.yaml             # Non-sensitive defaults only
 │   │   └── templates/
 │   │       ├── deployment.yaml
 │   │       ├── service.yaml
-│   │       ├── namespace.yml
-│   │       ├── gateway.yml           # GKE Gateway API
-│   │       ├── httproute.yaml        # Routes traffic to the app
+│   │       ├── gateway.yml         # GKE Gateway API
+│   │       ├── httproute.yaml
 │   │       ├── healthcheckpolicy.yaml
-│   │       ├── db-secret.yaml        # K8s Secret for DB password
-│   │       ├── ServiceMonitor.yaml   # Prometheus scrape config
-│   │       ├── grafana-dashboard.yaml # Grafana dashboard ConfigMap
+│   │       ├── db-secret.yaml
+│   │       ├── ServiceMonitor.yaml
+│   │       ├── grafana-dashboard.yaml
 │   │       └── _helpers.tpl
-│   │
-│   └── monitoring/            # Monitoring stack Helm values
+│   └── monitoring/                 # Observability stack values
 │       ├── kube-prometheus-stack-values.yaml
 │       ├── elasticsearch-values.yaml
 │       ├── kibana-values.yaml
 │       └── logstash-values.yaml
 │
-├── Infra/                     # Terraform infrastructure code
-│   ├── main.tf                # Root module: providers, modules, VPC peering
-│   ├── variables.tf           # Input variables
-│   ├── outputs.tf             # Outputs (cluster name, SQL IP, registry URL)
+├── Infra/
+│   ├── main.tf                     # Providers · modules · VPC peering
+│   ├── variables.tf
+│   ├── outputs.tf
 │   └── modules/
-│       ├── vpc/               # VPC, subnet, Cloud Router, Cloud NAT
-│       ├── gke/               # Private GKE cluster + node pool
-│       ├── cloudsql/          # MySQL 8.0 with private IP
-│       ├── artifact-registry/ # Docker image registry
-│       └── monitoring/        # Helm releases: Prometheus, Grafana, ELK
+│       ├── vpc/                    # VPC · subnet · Cloud Router · Cloud NAT
+│       ├── gke/                    # Private cluster · node pool · Gateway API
+│       ├── cloudsql/               # MySQL 8.0 · private IP · peering
+│       ├── artifact-registry/
+│       └── monitoring/             # Helm releases: Prometheus · Grafana · ELK
 │
-├── Dockerfile                 # Multi-stage build (JDK builder → JRE runtime)
-├── docker-compose.yml         # Local development (app + MySQL)
-└── pom.xml                    # Maven dependencies
+├── docs/
+│   ├── architecture-infra.{png,drawio}
+│   └── architecture-cicd.{png,drawio}
+│
+├── Dockerfile                      # Multi-stage: JDK builder → JRE runtime
+├── docker-compose.yml              # Local: app + MySQL
+└── pom.xml
 ```
 
 ---
 
 ## Application
 
-### What it does
+### API
 
-A Spring Boot REST API with:
-- JPA + MySQL persistence managed by Flyway migrations
-- Spring Actuator health and metrics endpoints
-- Prometheus metrics via Micrometer
-- JSON structured logging, with a Logstash TCP appender activated in the `logstash` profile
-
-### Key dependencies
-
-| Dependency | Purpose |
-|---|---|
-| `spring-boot-starter-web` | REST API |
-| `spring-boot-starter-data-jpa` | Database access |
-| `flyway-core` + `flyway-mysql` | Database schema migrations |
-| `spring-boot-starter-actuator` | Health checks + metrics endpoints |
-| `micrometer-registry-prometheus` | Exposes metrics at `/actuator/prometheus` |
-| `logstash-logback-encoder` | JSON log format + TCP shipping to Logstash |
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/user` | Create a user |
+| `GET` | `/user?id={id}` | Retrieve a user by ID |
+| `GET` | `/actuator/health` | Aggregate health |
+| `GET` | `/actuator/health/liveness` | Liveness probe target |
+| `GET` | `/actuator/health/readiness` | Readiness probe target |
+| `GET` | `/actuator/prometheus` | Prometheus scrape target |
 
 ### Configuration
 
-All configuration is environment-variable driven. Defaults are provided for local development:
+All config is injected via environment variables, no environment-specific code paths.
 
-| Variable | Default | Description |
+| Variable | Local default | Production |
 |---|---|---|
-| `SPRING_APPLICATION_NAME` | `app` | Application name |
-| `SPRING_DATASOURCE_URL` | `jdbc:mysql://localhost:3306/challenge` | Main DB connection |
-| `SPRING_DATASOURCE_WRITER_URL` | same | Flyway DB connection |
-| `SPRING_DATASOURCE_USERNAME` | `root` | DB username |
-| `SPRING_DATASOURCE_PASSWORD` | `dev` | DB password |
-| `SPRING_PROFILES_ACTIVE` | _(none)_ | Set to `logstash` |
-| `ACTUATOR_ENDPOINTS` | `health,info,prometheus` | Exposed actuator endpoints |
+| `SPRING_DATASOURCE_URL` | `jdbc:mysql://localhost:3306/challenge` | Cloud SQL private IP |
+| `SPRING_DATASOURCE_WRITER_URL` | same | same (Flyway target) |
+| `SPRING_DATASOURCE_USERNAME` | `root` | `crewmeister` |
+| `SPRING_DATASOURCE_PASSWORD` | `dev` | K8s Secret via `secretKeyRef` |
+| `SPRING_PROFILES_ACTIVE` | _(none)_ | `logstash` |
+| `ACTUATOR_ENDPOINTS` | `health,info,prometheus` | `health,info,prometheus` |
 
 ### Dockerfile
 
-The image uses a **two-stage build** to keep the final image small and secure:
+The image uses a **two-stage build** a Docker best practice that keeps the production image as small and secure as possible.
 
 ```
-Stage 1 (builder) — eclipse-temurin:17-jdk-alpine
-  ├── Copy pom.xml + mvnw → download dependencies (cached layer)
-  └── Copy src/ + build JAR
+Stage 1 (builder): eclipse-temurin:17-jdk-alpine
+  ├── Copy pom.xml + mvnw first → this layer is cached until pom.xml changes
+  ├── Download all dependencies (mvn dependency:go-offline)
+  └── Copy src/ and build the JAR (mvn package -DskipTests)
 
-Stage 2 (runtime) — eclipse-temurin:17-jre-alpine
+Stage 2 (runtime): eclipse-temurin:17-jre-alpine
   ├── Create non-root user: appuser / appgroup
-  ├── Copy JAR from builder
-  └── Run as appuser (no root access)
+  ├── Copy only the JAR from the builder stage
+  ├── Set ownership to appuser
+  └── Run as appuser (not root)
 ```
-
-> **Why two stages?** The JDK is ~300MB; the JRE is ~90MB. We only need the JDK to compile, the final image only ships the JRE, making it smaller and reducing the attack surface.
-
-JVM flags used at runtime:
-
-| Flag | Purpose |
-|---|---|
-| `-XX:+UseContainerSupport` | Makes JVM respect container memory limits |
-| `-XX:MaxRAMPercentage=75.0` | Heap uses at most 75% of available container memory |
-| `-Djava.security.egd=file:/dev/./urandom` | Faster startup on Linux |
 
 ---
 
 ## Infrastructure
 
-All cloud resources are managed with **Terraform** and stored in the `Infra/` directory. The state is stored remotely in a GCS bucket so the whole team shares the same view of infrastructure.
-
-### State backend
+Terraform manages all GCP resources. State is stored remotely in GCS, shared, locked, and versioned.
 
 ```hcl
 backend "gcs" {
@@ -179,276 +162,211 @@ backend "gcs" {
 }
 ```
 
-> **Why remote state?** Without it, two people running `terraform apply` simultaneously could corrupt infrastructure. The GCS backend provides locking and a shared source of truth.
+### Modules
 
-### Module breakdown
+#### `vpc`, Private network
 
-#### `modules/vpc`
-
-Creates the private network where all resources live:
-
-| Resource | Value |
+| Resource | CIDR / Value |
 |---|---|
 | VPC | `crewmeister-vpc` |
 | Private subnet | `10.0.32.0/19` |
-| Pod IP range | `172.16.0.0/14` |
-| Service IP range | `172.20.0.0/18` |
-| Cloud Router | Routes traffic |
-| Cloud NAT | Allows private nodes to pull images and reach the internet without a public IP |
+| Pod range | `172.16.0.0/14` |
+| Service range | `172.20.0.0/18` |
+| Cloud NAT | Static external IP, private egress |
 
-> **Why Cloud NAT?** GKE nodes are private (no public IP). Without NAT, they can't pull Docker images from Artifact Registry or reach external APIs. NAT provides outbound internet access without exposing nodes publicly.
+#### `gke`, Kubernetes cluster
 
-#### `modules/gke`
+| Setting | Value |
+|---|---|
+| Machine type | `e2-standard-2` (2 vCPU · 8GB) |
+| Private nodes | `true`, no public node IPs |
+| Private endpoint | `false`, K8s API reachable for CI/CD |
+| Release channel | `REGULAR`, managed upgrades |
+| Gateway API | `CHANNEL_STANDARD` |
 
-Creates the Kubernetes cluster:
+#### `cloudsql`, MySQL
 
-| Setting | Value | Why |
-|---|---|---|
-| Machine type | `e2-standard-2` | 2 vCPU, 8GB RAM |
-| Private nodes | `true` | Nodes have no public IP |
-| Private endpoint | `false` | The Kubernetes API is accessible from outside the VPC (needed for CI/CD) |
-| Release channel | `REGULAR` | Automatic GKE upgrades on a stable schedule |
+| Setting | Value |
+|---|---|
+| Engine | MySQL 8.0 |
+| Tier | `db-f1-micro` |
+| Public IP | disabled |
+| Private IP | VPC peering via `google_service_networking_connection` |
 
-#### `modules/cloudsql`
+Private IP requires a reserved address range and a VPC peering connection to `servicenetworking.googleapis.com`. Without this, Cloud SQL would need a public IP.
 
-Creates the MySQL database:
+#### `artifact-registry`
 
-| Setting | Value | Why |
-|---|---|---|
-| Version | `MySQL 8.0` | Modern, well-supported |
-| Tier | `db-f1-micro` | Smallest tier, suitable for dev/challenge |
-| Public IP | `disabled` | Never exposed to the internet |
-| Private IP | `enabled` | Only reachable from inside the VPC |
-| Deletion protection | `false` | Allows `terraform destroy` (set to `true` in real production) |
+Private Docker registry. Images tagged `:latest` and `:<git-sha>`, the SHA tag is immutable and enables precise rollbacks without rebuilding.
 
-**Private IP setup** requires three extra resources that work together:
+#### `monitoring`
 
-```
-1. google_compute_global_address    ← Reserves a /16 IP block in your VPC
-         │                             for Google-managed services
-         │
-2. google_service_networking_connection  ← Creates VPC peering between
-         │                                  your VPC and Google's service network
-         │
-3. Cloud SQL (private_network = your VPC)  ← Gets an IP from the reserved block
-```
-
-#### `modules/artifact-registry`
-
-A private Docker registry to store your container images. Images are tagged with both `:latest` and `:git-sha` for immutability and rollback capability.
-
-#### `modules/monitoring`
-
-Deploys the full observability stack via Helm releases onto the GKE cluster:
+Helm releases deployed to the `monitoring` namespace:
 
 | Release | Chart | Version |
 |---|---|---|
-| `kube-prometheus-stack` | `prometheus-community/kube-prometheus-stack` | 58.2.2 |
-| `elasticsearch` | `elastic/elasticsearch` | 8.5.1 |
-| `kibana` | `elastic/kibana` | 8.5.1 |
-| `logstash` | `elastic/logstash` | 8.5.1 |
+| `kube-prometheus-stack` | `prometheus-community` | 58.2.2 |
+| `elasticsearch` | `elastic` | 8.5.1 |
+| `kibana` | `elastic` | 8.5.1 |
+| `logstash` | `elastic` | 8.5.1 |
+
+### Variables
+
+| Variable | Default | Sensitive |
+|---|---|---|
+| `project_id` | `crewmeister-496312` |, |
+| `region` | `europe-west1` |, |
+| `zone` | `europe-west1-b` |, |
+| `cluster_name` | `crewmeister` |, |
+| `machine_type` | `e2-standard-2` |, |
+| `node_count` | `1` |, |
+| `db_password` | required | ✅ |
+| `grafana_admin_password` | required | ✅ |
+
+Sensitive variables are never stored in `.tf` files. They are passed as `TF_VAR_*` env vars from GitHub Secrets and declared `sensitive = true` in Terraform, excluded from plan/apply output.
+
+---
 
 ## Kubernetes & Helm
 
-The application is deployed using a Helm chart located at `helm/crewmeister/`.
+`helm upgrade --install` on every PR, idempotent, atomic, auto-rollback on failure.
 
-### What the chart deploys
+### Chart manifests
 
-| Template | What it creates |
-|---|---|
-| `namespace.yml` | The `crewmeister` namespace |
-| `deployment.yaml` | The Spring Boot pod |
-| `service.yaml` | ClusterIP service on port 8080 |
-| `gateway.yml` | GKE L7 Gateway (external load balancer, port 80) |
-| `httproute.yaml` | Routes all traffic (`/`) to the service |
-| `healthcheckpolicy.yaml` | Configures GKE's health check for the load balancer |
-| `db-secret.yaml` | Kubernetes Secret containing the DB password |
-| `ServiceMonitor.yaml` | Tells Prometheus where to scrape metrics |
-| `grafana-dashboard.yaml` | Provisions a Spring Boot dashboard into Grafana |
+| Template | Resource | Purpose |
+|---|---|---|
+| `namespace.yml` | `Namespace` | Owns the `crewmeister` namespace lifecycle |
+| `deployment.yaml` | `Deployment` | Pod spec, probes, env injections, secret refs |
+| `service.yaml` | `Service/ClusterIP` | Stable internal DNS at `:8080` |
+| `gateway.yml` | `Gateway` | GKE L7 external LB · port 80 |
+| `httproute.yaml` | `HTTPRoute` | Routes `/` → service |
+| `healthcheckpolicy.yaml` | `HealthCheckPolicy` | GKE LB health check parameters |
+| `db-secret.yaml` | `Secret` | DB password, `secretKeyRef` mount |
+| `ServiceMonitor.yaml` | `ServiceMonitor` | Prometheus scrape config · 15s interval |
+| `grafana-dashboard.yaml` | `ConfigMap` | Dashboard auto-discovery via `grafana_dashboard: "1"` label |
 
-### Traffic flow
+### Traffic path
 
 ```
-External user
-    │
-    ▼ HTTP :80 (public IP)
-Gateway (GKE L7 load balancer)
-    │
-    ▼
-HTTPRoute (routes / → crewmeister service)
-    │
-    ▼
-Service (ClusterIP :8080)
-    │
-    ▼
-Deployment pod (Spring Boot)
-    │
-    ├── Reads db-password from K8s Secret
-    ├── Connects to Cloud SQL via private IP (jdbc:mysql://10.x.x.x:3306/challenge)
-    └── Ships logs to Logstash via TCP :5000
+Internet → Gateway (public IP) → HTTPRoute (/) → Service:8080 → Pod
 ```
 
-### Helm values
+### Probes
 
-Non-sensitive configuration lives in `values.yaml`. Sensitive values (DB URL, password) are passed at deploy time via `--set` flags in the pipeline.
+| Probe | Path | Initial delay | Period | Failure action |
+|---|---|---|---|---|
+| Liveness | `/actuator/health/liveness` | 90s | 15s | Pod restart |
+| Readiness | `/actuator/health/readiness` | 60s | 10s | Remove from LB rotation |
 
-```yaml
-replicaCount: 1
-
-resources:
-  requests:
-    memory: "128Mi"
-    cpu: "100m"
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
-
-env:
-  SPRING_APPLICATION_NAME: crewmeister-challenge
-  SPRING_DATASOURCE_USERNAME: crewmeister
-  SPRING_PROFILES_ACTIVE: logstash    # activates Logstash TCP appender
-```
+The 90s liveness delay accounts for Flyway migrations on cold start. Separating liveness from readiness ensures a slow-starting pod isn't killed before it's had a chance to come up.
 
 ---
 
 ## CI/CD Pipelines
 
-Both pipelines trigger on **pull requests** to `main`. This means every change is validated before it reaches production.
+### `ci-cd.yml`, Application
 
-### `ci-cd.yml` — Application pipeline
-
-```
-Trigger: pull_request → main
-
-Job 1: push-image
-  1. Checkout code
-  2. Authenticate to GCP (service account key)
-  3. Setup Docker Buildx
-  4. Build image locally (not pushed yet) using GHA layer cache
-  5. Trivy scan (CRITICAL/HIGH vulnerabilities, exit-code: 0 — logs but doesn't block)
-  6. Upload SARIF report → GitHub Security tab (runs even if scan fails)
-  7. Push image to Artifact Registry with :latest and :<git-sha> tags
-
-Job 2: deploy (needs: push-image)
-  1. Checkout code
-  2. Authenticate to GCP
-  3. Install gke-gcloud-auth-plugin
-  4. Get GKE cluster credentials
-  5. helm upgrade --install (creates namespace if it doesn't exist)
-```
-
-> **Why `exit-code: 0` on Trivy?** The Spring Boot 3.3.5 JAR contains known CVEs in Tomcat and Spring Core. Setting exit-code to 0 means the scan results are visible in the GitHub Security tab without blocking deployments. Upgrade to Spring Boot 3.3.11+ to resolve these.
-
-> **What is GHA layer cache?** Docker builds layers, if `pom.xml` hasn't changed, the dependency download layer is reused from cache. This makes subsequent builds take seconds instead of minutes.
-
-### `infra.yml` — Infrastructure pipeline
+**Trigger:** `pull_request → main`
 
 ```
-Trigger: pull_request → main
+Job: push-image
+  1. GCP auth (service account)
+  2. Docker Buildx + GHA layer cache
+  3. Build image locally (push: false, load: true)  ← Trivy needs it in daemon
+  4. Trivy scan (CRITICAL/HIGH, exit-code: 0)
+  5. Upload SARIF → GitHub Security tab (if: always)
+  6. Push :latest + :<sha> to Artifact Registry     ← second build is instant via cache
 
-Permissions: contents: read, pull-requests: write
-
-Job 1: init-and-plan
-  1. Checkout code
-  2. Authenticate to GCP
-  3. terraform init + terraform validate
-  4. terraform plan -detailed-exitcode (exit 0=no changes, 1=error, 2=changes)
-  5. Post plan output as PR comment (✅ No changes / ⚠️ Changes / ❌ Failed)
-  6. Fail pipeline only if exit code is 1 (actual error)
-
-Job 2: apply (needs: init-and-plan, environment: production)
-  1. Authenticate to GCP
-  2. terraform init
-  3. terraform apply -auto-approve
-  4. terraform output
+Job: deploy  [needs: push-image]
+  1. Install gke-gcloud-auth-plugin
+  2. gcloud get-credentials
+  3. helm upgrade --install --wait --timeout 5m
 ```
 
-> **What is the `production` environment?** A GitHub Actions environment that requires manual approval before the apply job runs. This prevents accidental infrastructure changes, someone must click "Approve" in GitHub before Terraform applies.
+`exit-code: 0` on Trivy, Spring Boot 3.3.5 carries fixable CVEs in Tomcat 10.1.31 (addressed in 3.3.11+). The pipeline stays green while findings are tracked in the Security tab. Upgrading is documented under [Points of Improvement](#points-of-improvement).
 
-> **Why post the plan as a PR comment?** This lets reviewers see exactly what infrastructure will change before approving the PR, just like code review but for cloud resources.
+### `infra.yml`, Infrastructure
+
+**Trigger:** `pull_request → main`
+**Permissions:** `contents: read` · `pull-requests: write`
+
+```
+Job: init-and-plan
+  1. terraform init (GCS backend)
+  2. terraform validate
+  3. terraform plan -detailed-exitcode    ← 0=clean · 1=error · 2=drift
+  4. Post plan to PR comment (✅ / ⚠️ / ❌), delete previous comment first
+
+Job: apply  [needs: init-and-plan, environment: production]
+  1. terraform apply -auto-approve
+  2. terraform output
+```
+
+The `production` GitHub environment requires manual approval before apply runs, a deliberate gate preventing automated changes to production infrastructure.
 
 ---
 
 ## Observability
 
-### Metrics — Prometheus + Grafana
-
-The Spring Boot app exposes Prometheus metrics at `/actuator/prometheus`. The `ServiceMonitor` resource tells Prometheus to scrape this endpoint every 15 seconds.
+### Metrics, Prometheus + Grafana
 
 ```
-Spring Boot pod
-    │ /actuator/prometheus (every 15s)
-    ▼
-Prometheus (collects and stores metrics)
-    │
-    ▼
-Grafana (visualizes — Spring Boot dashboard auto-provisioned via ConfigMap)
+Pod → /actuator/prometheus
+    ← scraped by Prometheus via ServiceMonitor (15s)
+    → Grafana dashboard (auto-provisioned via ConfigMap label)
 ```
-
-Access Grafana at the LoadBalancer external IP:
 
 ```bash
 kubectl get svc kube-prometheus-stack-grafana -n monitoring
-# Default credentials: admin / <GRAFANA_ADMIN_PASSWORD secret>
+# http://<EXTERNAL-IP>  admin / $GRAFANA_ADMIN_PASSWORD
 ```
 
-### Logging — ELK stack (Elasticsearch + Logstash + Kibana)
-
-The app ships structured JSON logs to Logstash via TCP when the `logstash` Spring profile is active.
+### Logging, ELK
 
 ```
-Spring Boot pod (profile: logstash)
-    │ JSON over TCP :5000
-    ▼
-Logstash (receives, processes, forwards)
-    │ HTTPS + TLS
-    ▼
-Elasticsearch (stores log documents, xpack.security enabled)
-    │
-    ▼
-Kibana (search and visualize logs)
+Pod (profile: logstash)
+  → LogstashTcpSocketAppender → logstash-logstash.monitoring.svc.cluster.local:5000
+  → Logstash pipeline → Elasticsearch (HTTPS · xpack.security)
+  → Kibana  index pattern: crewmeister-logs-*
 ```
 
-**How the Logstash profile works:**
-
-`logback-spring.xml` configures two appenders:
-- `JSON_CONSOLE` always active, writes JSON logs to stdout
-- `LOGSTASH` only active when `SPRING_PROFILES_ACTIVE=logstash`, ships logs over TCP to `logstash-logstash.monitoring.svc.cluster.local:5000`
-
-Access Kibana at the LoadBalancer external IP:
+`logback-spring.xml` activates the TCP appender only under the `logstash` Spring profile. Without the profile (local dev), only the JSON console appender is active.
 
 ```bash
 kubectl get svc kibana-kibana -n monitoring
+# http://<EXTERNAL-IP>
 ```
-
-Create a data view with pattern `crewmeister-logs-*` to see application logs.
 
 ---
 
 ## Security
 
-### Container security
+### Container
 
-- **Non-root user** — the container runs as `appuser`, not root. Even if an attacker exploits the app, they get no root privileges.
-- **JRE-only runtime** — the final image contains only the Java Runtime, not the full JDK. No compiler, no development tools.
-- **Trivy scanning** — every image build scans for CRITICAL and HIGH CVEs before pushing.
+| Control | Implementation |
+|---|---|
+| Non-root runtime | Dedicated `appuser`, no escalation path |
+| Minimal image | JRE-only Alpine, no compiler, no shell tools |
+| Vulnerability scanning | Trivy on every build, CRITICAL/HIGH, ignore unfixed |
 
-### Network security
+### Network
 
-- **Private GKE nodes** — cluster nodes have no public IP addresses. They cannot be reached directly from the internet.
-- **Private Cloud SQL** — the database has no public IP. It's only reachable from within the VPC via private IP.
-- **VPC peering** — Cloud SQL connects to your VPC through a private peering connection — no traffic leaves Google's network.
-- **Cloud NAT** — provides controlled outbound internet access for private nodes without exposing inbound connections.
+| Control | Implementation |
+|---|---|
+| Private GKE nodes | `enable_private_nodes = true`, no public node IPs |
+| Private Cloud SQL | `ipv4_enabled = false`, database unreachable from internet |
+| VPC peering | SQL traffic stays inside Google's network |
+| Cloud NAT | Controlled egress, no open inbound ports on nodes |
 
-### Secrets management
+### Secrets
 
-| Secret | How it's stored | How it's used |
+| Secret | Transit | Rest |
 |---|---|---|
-| DB password | GitHub Secret → K8s Secret | Pod reads via `secretKeyRef` |
-| GCP credentials | GitHub Secret | CI/CD authenticates to GCP |
-| Grafana password | GitHub Secret → `TF_VAR_` | Passed to Terraform at apply time |
+| DB password | GitHub Secret → `--set-string` → K8s Secret | `secretKeyRef`, never in pod spec |
+| GCP key | GitHub Secret | Used at pipeline runtime only |
+| Grafana password | GitHub Secret → `TF_VAR_` (marked `sensitive`) | Helm values |
 
-> **Note:** In a production environment, GCP Secret Manager with Workload Identity Federation (WIF) would replace service account JSON keys entirely, no long-lived credentials stored anywhere.
+In production, the service account JSON key would be replaced with **Workload Identity Federation**, keyless, short-lived OIDC tokens, nothing stored in GitHub Secrets.
 
 ---
 
@@ -456,148 +374,242 @@ Create a data view with pattern `crewmeister-logs-*` to see application logs.
 
 ### Prerequisites
 
-- Docker + Docker Compose
-- Java 17 (for running without Docker)
-- `kubectl`, `helm`, `terraform`, `gcloud` (for infrastructure work)
+Docker · Docker Compose · Java 17 · `gcloud` · `kubectl` · `helm` · `terraform`
 
-### Run with Docker Compose
+### Docker Compose
 
 ```bash
-docker compose up
+docker compose up -d          # MySQL :3306 + app :8080
+docker compose logs -f app    # follow logs
+docker compose down           # teardown
 ```
 
-This starts:
-- MySQL 8.0 on port 3306 (with a health check — the app waits for MySQL to be ready)
-- Spring Boot app on port 8080
-
-Test the app:
+### Smoke tests
 
 ```bash
 curl http://localhost:8080/actuator/health
-# {"status":"UP"}
 
-curl http://localhost:8080/actuator/prometheus
-# metrics output
+curl -X POST http://localhost:8080/user \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Omar"}'
+
+curl "http://localhost:8080/user?id=1"
 ```
 
-### Run without Docker
+### Without Docker
 
 ```bash
-# Start MySQL
 docker compose up db -d
-
-# Run the app
 ./mvnw spring-boot:run
-```
-
-### Build the Docker image manually
-
-```bash
-docker build -t crewmeister-app:local .
-docker run -p 8080:8080 \
-  -e SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/challenge \
-  -e SPRING_DATASOURCE_PASSWORD=dev \
-  crewmeister-app:local
 ```
 
 ---
 
 ## Deployment Guide
 
-### First-time setup
-
-**1. Create a GCP service account for Terraform:**
+### 1. Bootstrap service account
 
 ```bash
 gcloud iam service-accounts create terraform-sa \
-  --display-name="Terraform Service Account"
+  --display-name="Terraform SA" --project=crewmeister-496312
 
-# Grant required permissions
-for role in \
-  roles/compute.admin \
-  roles/container.admin \
-  roles/iam.serviceAccountUser \
-  roles/storage.admin \
-  roles/artifactregistry.admin \
-  roles/cloudsql.admin \
+for role in roles/compute.admin roles/container.admin \
+  roles/iam.serviceAccountUser roles/storage.admin \
+  roles/artifactregistry.admin roles/cloudsql.admin \
   roles/servicenetworking.networksAdmin; do
   gcloud projects add-iam-policy-binding crewmeister-496312 \
     --member="serviceAccount:terraform-sa@crewmeister-496312.iam.gserviceaccount.com" \
     --role="$role"
 done
 
-# Download the key
 gcloud iam service-accounts keys create terraform-sa-key.json \
   --iam-account=terraform-sa@crewmeister-496312.iam.gserviceaccount.com
 ```
 
-**2. Create the Terraform state bucket:**
+### 2. Create state bucket
 
 ```bash
 gsutil mb -l europe-west1 gs://crewmeister-terraform-state-496312
 gsutil versioning set on gs://crewmeister-terraform-state-496312
 ```
 
-**3. Add GitHub Secrets** (see [GitHub Secrets Reference](#github-secrets-reference) below).
+### 3. Configure GitHub
 
-**4. Set up the `production` environment in GitHub:**
+- Add all secrets from [GitHub Secrets Reference](#github-secrets-reference)
+- Create a `production` environment under **Settings → Environments** with required reviewers
 
-Go to **Settings → Environments → New environment** → name it `production` → enable **Required reviewers**.
+### 4. Provision infrastructure
 
-**5. Deploy infrastructure** open a PR or run `infra.yml` manually via `workflow_dispatch`.
+Open a PR or trigger `infra.yml` manually via `workflow_dispatch`. Review the Terraform plan comment, Cloud SQL takes ~15 minutes to provision.
 
-**6. After Terraform applies, get the Cloud SQL IP:**
+### 5. Capture outputs
 
 ```bash
 terraform -chdir=Infra output cloud_sql_ip
+# → update CLOUD_SQL_IP secret
 ```
 
-Update the `CLOUD_SQL_IP` GitHub Secret with this value.
+### 6. Deploy application
 
-**7. Deploy the app** open a PR to trigger `ci-cd.yml`.
+Open any PR, `ci-cd.yml` handles the rest.
 
 ## GitHub Secrets Reference
 
-Add these in **Settings → Secrets and variables → Actions → New repository secret**:
-
-| Secret | Description | Example |
-|---|---|---|
-| `GCP_CREDENTIALS` | Service account JSON key (full file content) | `{ "type": "service_account", ... }` |
-| `GCP_PROJECT_ID` | GCP project ID | `crewmeister-496312` |
-| `GCP_ZONE` | GKE cluster zone | `europe-west1-b` |
-| `GKE_CLUSTER_NAME` | GKE cluster name | `crewmeister` |
-| `DB_PASSWORD` | MySQL database password | _(strong password)_ |
-| `CLOUD_SQL_IP` | Cloud SQL private IP (from `terraform output`) | `10.104.0.3` |
-| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | _(strong password)_ |
+| Secret | Value |
+|---|---|
+| `GCP_CREDENTIALS` | Contents of `terraform-sa-key.json` |
+| `GCP_PROJECT_ID` | `crewmeister-496312` |
+| `GCP_ZONE` | `europe-west1-b` |
+| `GKE_CLUSTER_NAME` | `crewmeister` |
+| `DB_PASSWORD` | MySQL password for `crewmeister` user |
+| `CLOUD_SQL_IP` | Output of `terraform output cloud_sql_ip` |
+| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password |
 
 ---
 
 ## Design Decisions
 
-### Why private GKE nodes?
+**Private topology over simplicity.** Choosing private GKE nodes and private Cloud SQL adds operational complexity (VPC peering, Cloud NAT, no direct DB access) but eliminates entire attack categories at the network layer, no public IPs means no exposure surface, not just a restricted one.
 
-Security best practice. Private nodes have no public IP, an attacker who finds a vulnerability in the app cannot reach the underlying node directly. All outbound traffic goes through Cloud NAT.
+**Helm over raw manifests.** `helm upgrade --install` is idempotent and atomic. A failed rollout triggers automatic rollback. Raw `kubectl apply` doesn't provide either guarantee, important when CI runs on every PR.
 
-### Why private Cloud SQL?
+**ELK alongside Prometheus, not instead.** Prometheus aggregates numeric signals, request rate, latency percentiles, heap usage. Elasticsearch stores discrete log events. They answer different questions: Prometheus tells you *that* something is wrong, logs tell you *why*. Replacing one with the other is a false economy at any meaningful traffic volume.
 
-Same reason — no public IP means the database is completely invisible to the internet. It can only be reached from within the VPC, which in practice means only the GKE pods.
+**`sensitive = true` on Terraform variables.** Sensitive variables are redacted from plan and apply output. Combined with `TF_VAR_*` injection from GitHub Secrets, never written to any `.tf` file, this closes the most common secret-in-repo vulnerability pattern.
 
-### Why Terraform modules?
+**`exit-code: 0` on Trivy.** Known CVEs in the current dependency tree (Tomcat 10.1.31, fixable via Spring Boot 3.3.11+) would permanently break the pipeline until resolved. Decoupling the scan from the gate, results visible in GitHub Security, pipeline unblocked, allows the team to track and remediate on a deliberate schedule rather than under pipeline pressure.
 
-Modules make infrastructure reusable and testable. Each module has a single responsibility (VPC, GKE, Cloud SQL, etc.). This mirrors how real teams organize Terraform, different teams might own different modules.
+---
 
-### Why ELK + Prometheus instead of just one?
+## Points of Improvement
 
-They serve different purposes:
-- **Prometheus + Grafana** real-time metrics (request rate, latency, JVM heap, CPU). Best for alerting and dashboards.
-- **ELK** full log storage and search. Best for debugging specific errors, tracing request flows, and long-term log retention.
+The following represent the delta between this implementation and a production-hardened system. Each is intentionally deferred from the challenge scope.
 
+---
 
-- versioning of the application, ci/cd workflow change the version. relaese candidate on main before tag --> tag = prd
-- Add sonar for repo scanning after talking about trivy
-- quarkus vs springboot app launching time
-- rbac for security best practice inside kubernetes and IAM permissions for GCP 
+### Versioning and release promotion
 
-- Talk about json based variables for terraform in production grade env
-- High availability of the application with high available gke cluster and replicas for the application, hpa for auscaling
-- Alert manager grafana for app alerting and usage mem,cpu
+**Gap:** Images are tagged `:latest` + `:<sha>`. No semantic versioning, no release boundary between staging and production.
+
+**Target state:**
+
+```
+feature/* → PR → main
+                  │
+                  ├── ci-cd.yml tags image as v1.2.3-rc.N
+                  ├── Helm chart appVersion bumped via semantic-release
+                  └── git tag v1.2.3
+                        └── promotes RC image to production tag (immutable)
+                            GitHub Release created with auto-generated changelog
+```
+
+---
+
+### Static analysis: SonarQube / SonarCloud
+
+**Gap:** Trivy scans the compiled image for known CVEs in OS packages and JARs. It does not analyze Java source code for bugs, security hotspots, or coverage regressions.
+
+**Target state:** SonarCloud (free for public repos) added as a step in `ci-cd.yml` before the Docker build:
+
+Quality gate blocks the PR if: coverage drops below threshold, a blocker issue is introduced, or a security hotspot is unreviewed. Combined with Trivy, this gives full-spectrum coverage, source code and artifact.
+
+---
+
+### RBAC and IAM least privilege
+
+**Gap:** `terraform-sa` holds `container.admin`, a single compromised key has cluster-wide write access. Application pods run as the default service account with no RBAC constraints.
+
+**Target state:**
+
+_Kubernetes RBAC_, each namespace gets a dedicated ServiceAccount. The application SA is bound to a Role with the minimum verbs needed:
+
+```yaml
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+    resourceNames: ["crewmeister-db-secret"]
+```
+
+_GCP IAM_, split `terraform-sa` by responsibility:
+
+| Account | Scope |
+|---|---|
+| `terraform-infra-sa` | `compute.admin` · `container.admin` · `cloudsql.admin` |
+| `cicd-deploy-sa` | `container.developer` · `artifactregistry.writer` |
+| `app-workload-sa` | `cloudsql.client` via Workload Identity |
+
+_Workload Identity Federation_, replace the long-lived JSON key in `GCP_CREDENTIALS` with keyless OIDC authentication:
+
+No stored credentials. Short-lived tokens scoped to the calling workflow.
+
+---
+
+### Multi-environment Terraform with JSON variable files
+
+**Gap:** Variables passed as `TF_VAR_*` env vars, works for one environment, does not scale to multiple.
+
+**Target state:**
+
+```
+Infra/environments/
+  ├── dev.tfvars.json
+  ├── staging.tfvars.json
+  └── production.tfvars.json
+```
+
+```json
+{
+  "cluster_name": "crewmeister-prod",
+  "machine_type": "e2-standard-4",
+  "node_count": 3,
+  "db_tier": "db-n1-standard-2"
+}
+```
+
+```bash
+terraform plan -var-file="environments/$ENV.tfvars.json"
+```
+
+Modules remain unchanged across environments, only variable files differ. Each environment gets its own GCS state prefix. This is the standard pattern in organizations operating more than one environment or application with a shared module library.
+
+---
+
+### High availability
+
+**Gap:** Single GKE node · single replica · Cloud SQL `ZONAL`. Zone failure is a full outage.
+
+**Target state:**
+
+```hcl
+# GKE, 3 nodes across 3 zones
+node_locations = ["europe-west1-b", "europe-west1-c", "europe-west1-d"]
+node_count     = 3
+
+# Cloud SQL, regional HA with automatic failover
+availability_type = "REGIONAL"
+```
+
+```yaml
+# HPA, autoscale on CPU/memory
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+spec:
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource: {name: cpu, target: {type: Utilization, averageUtilization: 70}}
+    - type: Resource
+      resource: {name: memory, target: {type: Utilization, averageUtilization: 80}}
+```
+
+---
+
+### Proactive alerting, AlertManager
+
+**Gap:** Grafana dashboards are passive. Issues require someone to be watching.
+
+**Target state:** AlertManager (bundled in `kube-prometheus-stack`).
+
+Closes the loop from passive monitoring to active incident response, on-call notified before users are impacted.
