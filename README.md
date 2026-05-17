@@ -502,6 +502,12 @@ Quality gate blocks the PR if: coverage drops below threshold, a blocker issue i
 ---
 
 ### RBAC and IAM least privilege
+**Gap:** For the devops challenge we are storing secrets in Github directly
+**Target state:** Use Hashicorp Vault or Google secret manager to store secrets
+
+---
+
+### RBAC and IAM least privilege
 
 **Gap:** `terraform-sa` holds `container.admin`, a single compromised key has cluster-wide write access. Application pods run as the default service account with no RBAC constraints.
 
