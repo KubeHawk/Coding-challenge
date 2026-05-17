@@ -47,7 +47,7 @@ The diagrams below illustrate the full system.
 
 ### Infrastructure architecture
 
-![Infrastructure Architecture](docs/Architecture.png)
+![Infrastructure Architecture](docs/Architecture (1).png)
 
 ## Repository Structure
 
@@ -591,3 +591,13 @@ Modules make infrastructure reusable and testable. Each module has a single resp
 They serve different purposes:
 - **Prometheus + Grafana** real-time metrics (request rate, latency, JVM heap, CPU). Best for alerting and dashboards.
 - **ELK** full log storage and search. Best for debugging specific errors, tracing request flows, and long-term log retention.
+
+
+- versioning of the application, ci/cd workflow change the version. relaese candidate on main before tag --> tag = prd
+- Add sonar for repo scanning after talking about trivy
+- quarkus vs springboot app launching time
+- rbac for security best practice inside kubernetes and IAM permissions for GCP 
+
+- Talk about json based variables for terraform in production grade env
+- High availability of the application with high available gke cluster and replicas for the application, hpa for auscaling
+- Alert manager grafana for app alerting and usage mem,cpu
