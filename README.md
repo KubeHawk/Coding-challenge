@@ -18,7 +18,6 @@
 - [Local Development](#local-development)
 - [Deployment Guide](#deployment-guide)
 - [GitHub Secrets Reference](#github-secrets-reference)
-- [Design Decisions](#design-decisions)
 - [Points of Improvement](#points-of-improvement)
 
 ---
@@ -501,8 +500,10 @@ Quality gate blocks the PR if: coverage drops below threshold, a blocker issue i
 
 ---
 
-### RBAC and IAM least privilege
+### Secrets Management
+
 **Gap:** For the devops challenge we are storing secrets in Github directly
+
 **Target state:** Use Hashicorp Vault or Google secret manager to store secrets
 
 ---
