@@ -125,7 +125,7 @@ All config is injected via environment variables, no environment-specific code p
 | Variable | Local default | Production |
 |---|---|---|
 | `SPRING_DATASOURCE_URL` | `jdbc:mysql://localhost:3306/challenge` | Cloud SQL private IP |
-| `SPRING_DATASOURCE_WRITER_URL` | same | same (Flyway target) |
+| `SPRING_DATASOURCE_WRITER_URL` | `jdbc:mysql://localhost:3306/challenge` | Cloud SQL private IP |
 | `SPRING_DATASOURCE_USERNAME` | `root` | `crewmeister` |
 | `SPRING_DATASOURCE_PASSWORD` | `dev` | K8s Secret via `secretKeyRef` |
 | `SPRING_PROFILES_ACTIVE` | _(none)_ | `logstash` |
