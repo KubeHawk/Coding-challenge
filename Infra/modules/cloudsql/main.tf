@@ -1,3 +1,4 @@
+# Sql Instance
 resource "google_sql_database_instance" "main" {
   name             = var.instance_name
   database_version = var.database_version
@@ -15,8 +16,8 @@ resource "google_sql_database_instance" "main" {
     }
 
     ip_configuration {
-      ipv4_enabled    = false          # ← disable public IP
-      private_network = var.vpc_network # ← use VPC private IP
+      ipv4_enabled                                  = false
+      private_network                               = var.vpc_network
       enable_private_path_for_google_cloud_services = true
       allocated_ip_range                            = var.allocated_ip_range
     }
@@ -29,11 +30,13 @@ resource "google_sql_database_instance" "main" {
   }
 }
 
+# Sql Database
 resource "google_sql_database" "main" {
   name     = var.db_name
   instance = google_sql_database_instance.main.name
 }
 
+# Sql User
 resource "google_sql_user" "main" {
   name     = var.db_user
   instance = google_sql_database_instance.main.name

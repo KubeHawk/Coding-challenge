@@ -28,7 +28,10 @@ probes:
     initialDelaySeconds: 60
     periodSeconds: 10
 
+monitoring:
+  namespace: monitoring
+
 env:
   SPRING_APPLICATION_NAME: crewmeister-challenge
   SPRING_DATASOURCE_USERNAME: crewmeister
-  SPRING_PROFILES_ACTIVE: logstash 
+  SPRING_PROFILES_ACTIVE: logstash

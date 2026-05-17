@@ -1,8 +1,8 @@
 apiVersion: networking.gke.io/v1
 kind: HealthCheckPolicy
 metadata:
-  name: crewmeister-health-check
-  namespace: crewmeister
+  name: {{ include "crewmeister.fullname" . }}-health-check
+  namespace: {{ .Release.Namespace }}
 spec:
   default:
     checkIntervalSec: 15
@@ -14,9 +14,9 @@ spec:
     config:
       type: HTTP
       httpHealthCheck:
-        port: 8080
-        requestPath: /actuator/health/liveness
+        port: {{ .Values.service.port }}
+        requestPath: {{ .Values.probes.liveness.path }}
   targetRef:
     group: ""
     kind: Service
-    name: crewmeister
+    name: {{ include "crewmeister.fullname" . }}

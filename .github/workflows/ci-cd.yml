@@ -9,9 +9,9 @@ env:
   IMAGE_NAME: crewmeister-app
 
 jobs:
-  # ─── Job 1: Build & Push image ────────────────────────────────────────────
+  # Build & Scan image
   push-image:
-    name: Build & Push Image
+    name: Build, Scan & Push Image
     runs-on: ubuntu-latest
 
     steps:
@@ -31,7 +31,46 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
-      - name: Build & Push image
+      # Build locally for Trivy scanning
+      - name: Build image for scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Trivy scan
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: table
+          exit-code: 0
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      # Upload results to GitHub Security tab
+      - name: Scan image with Trivy (SARIF)
+        uses: aquasecurity/trivy-action@master
+        if: always()
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      # Push only if scan passed
+      - name: Push image to Artifact Registry
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -42,7 +81,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ─── Job 2: Deploy Helm chart to GKE ─────────────────────────────────────
+  # Deploy Helm chart to GKE
   deploy:
     name: Deploy to GKE
     runs-on: ubuntu-latest
@@ -78,8 +117,8 @@ jobs:
             --namespace crewmeister \
             --set image.repository="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/crewmeister/${{ env.IMAGE_NAME }}" \
             --set image.tag="${{ github.sha }}" \
-            --set env.SPRING_DATASOURCE_URL="jdbc:mysql://${{ secrets.CLOUD_SQL_IP }}:3306/challenge?createDatabaseIfNotExist=true" \
-            --set env.SPRING_DATASOURCE_WRITER_URL="jdbc:mysql://${{ secrets.CLOUD_SQL_IP }}:3306/challenge?createDatabaseIfNotExist=true" \
+            --set env.SPRING_DATASOURCE_URL="jdbc:mysql://${{ secrets.CLOUD_SQL_IP }}:3306/challenge" \
+            --set env.SPRING_DATASOURCE_WRITER_URL="jdbc:mysql://${{ secrets.CLOUD_SQL_IP }}:3306/challenge" \
             --set-string env.SPRING_DATASOURCE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
             --wait \
             --timeout 5m

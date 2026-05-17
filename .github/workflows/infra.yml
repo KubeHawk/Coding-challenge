@@ -7,6 +7,10 @@ on:
 env:
   TF_DIR: Infra
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   init-and-plan:
     name: Terraform Init & Plan
@@ -31,11 +35,71 @@ jobs:
           terraform validate
 
       - name: Terraform Plan
+        id: plan
         working-directory: ${{ env.TF_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
           TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-        run: terraform plan
+        run: |
+          set +e
+          terraform plan -no-color -detailed-exitcode 2>&1 | tee plan-output.txt
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+        shell: sh
+
+      - name: Post Plan to PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('${{ env.TF_DIR }}/plan-output.txt', 'utf8');
+            const maxLength = 65000;
+            const truncated = plan.length > maxLength
+              ? plan.substring(0, maxLength) + '\n... truncated'
+              : plan;
+
+            const exitcode = '${{ steps.plan.outputs.exitcode }}';
+            const status = exitcode === '0' ? '✅ No changes'
+                         : exitcode === '2' ? '⚠️ Changes detected'
+                         : '❌ Plan failed';
+
+            const output = `#### 🔍 Terraform Plan — ${status}
+            <details><summary>Click to expand</summary>
+
+            \`\`\`hcl
+            ${truncated}
+            \`\`\`
+            </details>
+
+            *Pushed by @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            for (const comment of comments) {
+              if (comment.body.includes('#### 🔍 Terraform Plan')) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: comment.id,
+                });
+              }
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: output,
+            });
+
+      - name: Fail if plan failed
+        if: steps.plan.outputs.exitcode == '1'
+        run: exit 1
 
   apply:
     name: Terraform Apply
@@ -53,7 +117,6 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-
       - name: Terraform Init
         working-directory: ${{ env.TF_DIR }}
         env:
@@ -66,3 +129,7 @@ jobs:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
           TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
         run: terraform apply -auto-approve
+
+      - name: Terraform Output
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform output

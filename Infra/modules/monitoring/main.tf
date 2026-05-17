@@ -7,7 +7,7 @@ locals {
   }
 }
 
-# ─── Monitoring Namespace ─────────────────────────────────────────────────────
+# Monitoring Namespace
 resource "kubernetes_namespace" "monitoring" {
   metadata {
     name   = var.namespace
@@ -15,7 +15,7 @@ resource "kubernetes_namespace" "monitoring" {
   }
 }
 
-# ─── Prometheus + Grafana ─────────────────────────────────────────────────────
+# Prometheus & Grafana
 resource "helm_release" "kube_prometheus_stack" {
   depends_on = [kubernetes_namespace.monitoring]
 
@@ -36,7 +36,7 @@ resource "helm_release" "kube_prometheus_stack" {
   }
 }
 
-# ─── Elasticsearch ────────────────────────────────────────────────────────────
+# Elasticsearch
 resource "helm_release" "elasticsearch" {
   depends_on = [kubernetes_namespace.monitoring]
 
@@ -52,7 +52,7 @@ resource "helm_release" "elasticsearch" {
   values = [file(var.elasticsearch_values_file)]
 }
 
-# ─── Logstash ─────────────────────────────────────────────────────────────────
+# Logstash
 resource "helm_release" "logstash" {
   depends_on = [helm_release.elasticsearch]
 
@@ -68,7 +68,7 @@ resource "helm_release" "logstash" {
   values = [file(var.logstash_values_file)]
 }
 
-# ─── Kibana ───────────────────────────────────────────────────────────────────
+# Kibana
 resource "helm_release" "kibana" {
   depends_on = [helm_release.elasticsearch]
 

@@ -25,13 +25,11 @@ logstashPipeline:
       }
     }
 
-# Mount the Elasticsearch CA cert so Logstash can verify TLS
 secretMounts:
   - name: elasticsearch-certs
     secretName: elasticsearch-master-certs
     path: /usr/share/logstash/config/certs
 
-# Inject Elasticsearch credentials from the secret created by the ES chart
 extraEnvs:
   - name: ELASTICSEARCH_USERNAME
     valueFrom:
