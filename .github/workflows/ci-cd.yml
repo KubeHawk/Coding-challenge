@@ -9,7 +9,7 @@ env:
   IMAGE_NAME: crewmeister-app
 
 jobs:
-  # ─── Job 1: Build & Scan image ────────────────────────────────────────────
+  # Build & Scan image
   push-image:
     name: Build, Scan & Push Image
     runs-on: ubuntu-latest
@@ -31,7 +31,7 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
-      # ─── Build locally for Trivy scanning (no push yet) ───────────────────
+      # Build locally for Trivy scanning
       - name: Build image for scanning
         uses: docker/build-push-action@v5
         with:
@@ -42,7 +42,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ─── Trivy scan — fail on CRITICAL/HIGH with fixes available ──────────
+      # Trivy scan
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
@@ -52,10 +52,10 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
 
-      # ─── Upload results to GitHub Security tab ────────────────────────────
+      # Upload results to GitHub Security tab
       - name: Scan image with Trivy (SARIF)
         uses: aquasecurity/trivy-action@master
-        if: always()    # ← run even if previous scan failed
+        if: always()
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: sarif
@@ -65,11 +65,11 @@ jobs:
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
-        if: always()    # ← run even if scan failed
+        if: always()
         with:
           sarif_file: trivy-results.sarif
 
-      # ─── Push only if scan passed ─────────────────────────────────────────
+      # Push only if scan passed
       - name: Push image to Artifact Registry
         uses: docker/build-push-action@v5
         with:
@@ -81,7 +81,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ─── Job 2: Deploy Helm chart to GKE ─────────────────────────────────────
+  # Deploy Helm chart to GKE
   deploy:
     name: Deploy to GKE
     runs-on: ubuntu-latest

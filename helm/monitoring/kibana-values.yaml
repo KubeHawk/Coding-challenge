@@ -1,7 +1,6 @@
 elasticsearchHosts: "https://elasticsearch-master:9200"
 elasticsearchCertificateSecret: "elasticsearch-master-certs"
 elasticsearchCertificateAuthoritiesFile: "ca.crt"
-# Credentials auto-created by the Elasticsearch chart
 elasticsearchCredentialSecret: "elasticsearch-master-credentials"
 
 readinessProbe:

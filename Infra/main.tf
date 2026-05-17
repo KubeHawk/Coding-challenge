@@ -22,6 +22,8 @@ terraform {
   }
 }
 
+
+# Providers
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -52,6 +54,7 @@ locals {
   }
 }
 
+# Enable APIs
 resource "google_project_service" "apis" {
   for_each = toset([
     "compute.googleapis.com",
@@ -65,6 +68,7 @@ resource "google_project_service" "apis" {
   disable_on_destroy = false
 }
 
+# VPC
 module "vpc" {
   source = "./modules/vpc"
 
@@ -103,6 +107,7 @@ resource "google_service_networking_connection" "private_vpc_connection" {
   depends_on              = [google_project_service.apis]
 }
 
+# GKE
 module "gke" {
   source = "./modules/gke"
 
@@ -127,6 +132,7 @@ module "gke" {
   depends_on = [module.vpc]
 }
 
+# Cloud SQL
 module "cloudsql" {
   source = "./modules/cloudsql"
 
@@ -142,13 +148,14 @@ module "cloudsql" {
   db_name             = "challenge"
   db_user             = "crewmeister"
   db_password         = var.db_password
-  vpc_network         = module.vpc.network_self_link  # ← pass VPC
+  vpc_network         = module.vpc.network_self_link
   labels              = local.labels
   allocated_ip_range  = google_compute_global_address.private_ip_range.name
 
   depends_on = [google_project_service.apis, module.vpc, google_service_networking_connection.private_vpc_connection]
 }
 
+# Artifact Registry
 module "artifact_registry" {
   source = "./modules/artifact-registry"
 
@@ -163,6 +170,7 @@ module "artifact_registry" {
   depends_on = [google_project_service.apis]
 }
 
+# Monitoring
 module "monitoring" {
   source = "./modules/monitoring"
 

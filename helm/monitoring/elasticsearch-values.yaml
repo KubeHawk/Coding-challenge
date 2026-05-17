@@ -19,9 +19,6 @@ persistence:
 
 antiAffinity: "soft"
 
-# Enable X-Pack security so that TLS and credential auth are active.
-# The chart auto-generates the elasticsearch-master-certs and
-# elasticsearch-master-credentials secrets consumed by Kibana and Logstash.
 esConfig:
   elasticsearch.yml: |
     xpack.security.enabled: true

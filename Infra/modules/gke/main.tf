@@ -1,3 +1,4 @@
+# Google Container Cluster
 resource "google_container_cluster" "main" {
   name       = var.cluster_name
   location   = var.zone
@@ -32,6 +33,7 @@ resource "google_container_cluster" "main" {
   resource_labels     = var.labels
 }
 
+# Google Container Node Pool
 resource "google_container_node_pool" "main" {
   name       = var.node_pool_name
   location   = var.zone

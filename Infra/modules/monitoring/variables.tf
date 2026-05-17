@@ -4,7 +4,6 @@ variable "namespace" {
   default     = "monitoring"
 }
 
-# ─── Chart versions ───────────────────────────────────────────────────────────
 variable "prometheus_stack_version" {
   description = "kube-prometheus-stack Helm chart version"
   type        = string
@@ -29,7 +28,6 @@ variable "logstash_version" {
   default     = "8.5.1"
 }
 
-# ─── Values files ─────────────────────────────────────────────────────────────
 variable "prometheus_stack_values_file" {
   description = "Path to kube-prometheus-stack Helm values file"
   type        = string
@@ -50,14 +48,12 @@ variable "logstash_values_file" {
   type        = string
 }
 
-# ─── Grafana ──────────────────────────────────────────────────────────────────
 variable "grafana_admin_password" {
   description = "Grafana admin password"
   type        = string
   sensitive   = true
 }
 
-# ─── Timeouts ─────────────────────────────────────────────────────────────────
 variable "prometheus_timeout" {
   description = "Timeout for kube-prometheus-stack deployment in seconds"
   type        = number
@@ -82,7 +78,6 @@ variable "logstash_timeout" {
   default     = 300
 }
 
-# ─── Common ───────────────────────────────────────────────────────────────────
 variable "labels" {
   description = "Labels to apply to resources"
   type        = map(string)
