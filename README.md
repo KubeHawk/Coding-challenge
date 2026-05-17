@@ -47,7 +47,7 @@ The diagrams below illustrate the full system.
 
 ### Infrastructure architecture
 
-![Infrastructure Architecture](docs/Architecture (1).png)
+![Infrastructure Architecture](docs/Architectures.png)
 
 ## Repository Structure
 
