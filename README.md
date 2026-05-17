@@ -1,4 +1,4 @@
-# Crewmeister, DevOps Challenge
+# DevOps Challenge
 
 > Complete lifecycle implementation of a Spring Boot user management API on GCP, containerized, infrastructure-as-code, Kubernetes-native, fully automated CI/CD, and production-grade observability.
 
@@ -164,7 +164,7 @@ backend "gcs" {
 
 ### Modules
 
-#### `vpc`, Private network
+#### `vpc` Private network
 
 | Resource | CIDR / Value |
 |---|---|
@@ -174,7 +174,7 @@ backend "gcs" {
 | Service range | `172.20.0.0/18` |
 | Cloud NAT | Static external IP, private egress |
 
-#### `gke`, Kubernetes cluster
+#### `gke` Kubernetes cluster
 
 | Setting | Value |
 |---|---|
@@ -184,7 +184,7 @@ backend "gcs" {
 | Release channel | `REGULAR`, managed upgrades |
 | Gateway API | `CHANNEL_STANDARD` |
 
-#### `cloudsql`, MySQL
+#### `cloudsql` MySQL
 
 | Setting | Value |
 |---|---|
@@ -264,7 +264,7 @@ The 90s liveness delay accounts for Flyway migrations on cold start. Separating 
 
 ## CI/CD Pipelines
 
-### `ci-cd.yml`, Application
+### `ci-cd.yml`
 
 **Trigger:** `pull_request → main`
 
@@ -285,7 +285,7 @@ Job: deploy  [needs: push-image]
 
 `exit-code: 0` on Trivy, Spring Boot 3.3.5 carries fixable CVEs in Tomcat 10.1.31 (addressed in 3.3.11+). The pipeline stays green while findings are tracked in the Security tab. Upgrading is documented under [Points of Improvement](#points-of-improvement).
 
-### `infra.yml`, Infrastructure
+### `infra.yml`
 
 **Trigger:** `pull_request → main`
 **Permissions:** `contents: read` · `pull-requests: write`
@@ -308,7 +308,7 @@ The `production` GitHub environment requires manual approval before apply runs, 
 
 ## Observability
 
-### Metrics, Prometheus + Grafana
+### Metrics Prometheus + Grafana
 
 ```
 Pod → /actuator/prometheus
@@ -321,7 +321,7 @@ kubectl get svc kube-prometheus-stack-grafana -n monitoring
 # http://<EXTERNAL-IP>  admin / $GRAFANA_ADMIN_PASSWORD
 ```
 
-### Logging, ELK
+### Logging ELK
 
 ```
 Pod (profile: logstash)
@@ -606,7 +606,7 @@ spec:
 
 ---
 
-### Proactive alerting, AlertManager
+### Proactive alerting AlertManager
 
 **Gap:** Grafana dashboards are passive. Issues require someone to be watching.
 
