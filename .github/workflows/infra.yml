@@ -3,7 +3,6 @@ name: Infrastructure
 on:
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 env:
   TF_DIR: Infra

@@ -43,7 +43,7 @@ This project containerizes and deploys a Spring Boot REST API to a private GKE c
 
 ## Architecture
 
-The diagrams below illustrate the full system. Import the XML files in `docs/` into [draw.io](https://app.diagrams.net) via **File → Import from → This device**.
+The diagrams below illustrate the full system.
 
 ### Infrastructure architecture
 
@@ -136,7 +136,7 @@ All configuration is environment-variable driven. Defaults are provided for loca
 | `SPRING_DATASOURCE_WRITER_URL` | same | Flyway DB connection |
 | `SPRING_DATASOURCE_USERNAME` | `root` | DB username |
 | `SPRING_DATASOURCE_PASSWORD` | `dev` | DB password |
-| `SPRING_PROFILES_ACTIVE` | _(none)_ | Set to `logstash` in production |
+| `SPRING_PROFILES_ACTIVE` | _(none)_ | Set to `logstash` |
 | `ACTUATOR_ENDPOINTS` | `health,info,prometheus` | Exposed actuator endpoints |
 
 ### Dockerfile
@@ -154,7 +154,7 @@ Stage 2 (runtime) — eclipse-temurin:17-jre-alpine
   └── Run as appuser (no root access)
 ```
 
-> **Why two stages?** The JDK is ~300MB; the JRE is ~90MB. We only need the JDK to compile — the final image only ships the JRE, making it smaller and reducing the attack surface.
+> **Why two stages?** The JDK is ~300MB; the JRE is ~90MB. We only need the JDK to compile, the final image only ships the JRE, making it smaller and reducing the attack surface.
 
 JVM flags used at runtime:
 
@@ -204,11 +204,10 @@ Creates the Kubernetes cluster:
 
 | Setting | Value | Why |
 |---|---|---|
-| Machine type | `e2-standard-2` | 2 vCPU, 8GB RAM — sufficient for all workloads |
-| Private nodes | `true` | Nodes have no public IP — security best practice |
+| Machine type | `e2-standard-2` | 2 vCPU, 8GB RAM |
+| Private nodes | `true` | Nodes have no public IP |
 | Private endpoint | `false` | The Kubernetes API is accessible from outside the VPC (needed for CI/CD) |
 | Release channel | `REGULAR` | Automatic GKE upgrades on a stable schedule |
-| Gateway API | `CHANNEL_STANDARD` | Enables the modern Kubernetes Gateway API for ingress |
 
 #### `modules/cloudsql`
 
@@ -249,21 +248,6 @@ Deploys the full observability stack via Helm releases onto the GKE cluster:
 | `kibana` | `elastic/kibana` | 8.5.1 |
 | `logstash` | `elastic/logstash` | 8.5.1 |
 
-### Terraform variables
-
-| Variable | Default | Sensitive | Description |
-|---|---|---|---|
-| `project_id` | `crewmeister-496312` | No | GCP project ID |
-| `region` | `europe-west1` | No | GCP region |
-| `zone` | `europe-west1-b` | No | GCP zone |
-| `cluster_name` | `crewmeister` | No | Name prefix for all resources |
-| `machine_type` | `e2-standard-2` | No | GKE node type |
-| `node_count` | `1` | No | Number of GKE nodes |
-| `db_password` | _(required)_ | **Yes** | MySQL password |
-| `grafana_admin_password` | _(required)_ | **Yes** | Grafana admin password |
-
----
-
 ## Kubernetes & Helm
 
 The application is deployed using a Helm chart located at `helm/crewmeister/`.
@@ -303,16 +287,6 @@ Deployment pod (Spring Boot)
     ├── Connects to Cloud SQL via private IP (jdbc:mysql://10.x.x.x:3306/challenge)
     └── Ships logs to Logstash via TCP :5000
 ```
-
-### Health checks
-
-Spring Actuator exposes two endpoints the cluster uses:
-
-| Endpoint | Used for |
-|---|---|
-| `/actuator/health/liveness` | Kubernetes liveness probe — restarts the pod if it fails |
-| `/actuator/health/readiness` | Kubernetes readiness probe — stops traffic to the pod if it fails |
-| `/actuator/prometheus` | Prometheus metrics scraping |
 
 ### Helm values
 
@@ -363,14 +337,14 @@ Job 2: deploy (needs: push-image)
   5. helm upgrade --install (creates namespace if it doesn't exist)
 ```
 
-> **Why `exit-code: 0` on Trivy?** The Spring Boot 3.3.5 JAR contains known CVEs in Tomcat and Spring Core that are fixed in later versions. Setting exit-code to 0 means the scan results are visible in the GitHub Security tab without blocking deployments. Upgrade to Spring Boot 3.3.11+ to resolve these.
+> **Why `exit-code: 0` on Trivy?** The Spring Boot 3.3.5 JAR contains known CVEs in Tomcat and Spring Core. Setting exit-code to 0 means the scan results are visible in the GitHub Security tab without blocking deployments. Upgrade to Spring Boot 3.3.11+ to resolve these.
 
-> **What is GHA layer cache?** Docker builds layers — if `pom.xml` hasn't changed, the dependency download layer is reused from cache. This makes subsequent builds take seconds instead of minutes.
+> **What is GHA layer cache?** Docker builds layers, if `pom.xml` hasn't changed, the dependency download layer is reused from cache. This makes subsequent builds take seconds instead of minutes.
 
 ### `infra.yml` — Infrastructure pipeline
 
 ```
-Trigger: pull_request → main + workflow_dispatch (manual)
+Trigger: pull_request → main
 
 Permissions: contents: read, pull-requests: write
 
@@ -389,9 +363,9 @@ Job 2: apply (needs: init-and-plan, environment: production)
   4. terraform output
 ```
 
-> **What is the `production` environment?** A GitHub Actions environment that requires manual approval before the apply job runs. This prevents accidental infrastructure changes — someone must click "Approve" in GitHub before Terraform applies.
+> **What is the `production` environment?** A GitHub Actions environment that requires manual approval before the apply job runs. This prevents accidental infrastructure changes, someone must click "Approve" in GitHub before Terraform applies.
 
-> **Why post the plan as a PR comment?** This lets reviewers see exactly what infrastructure will change before approving the PR — just like code review but for cloud resources.
+> **Why post the plan as a PR comment?** This lets reviewers see exactly what infrastructure will change before approving the PR, just like code review but for cloud resources.
 
 ---
 
@@ -438,8 +412,8 @@ Kibana (search and visualize logs)
 **How the Logstash profile works:**
 
 `logback-spring.xml` configures two appenders:
-- `JSON_CONSOLE` — always active, writes JSON logs to stdout
-- `LOGSTASH` — only active when `SPRING_PROFILES_ACTIVE=logstash`, ships logs over TCP to `logstash-logstash.monitoring.svc.cluster.local:5000`
+- `JSON_CONSOLE` always active, writes JSON logs to stdout
+- `LOGSTASH` only active when `SPRING_PROFILES_ACTIVE=logstash`, ships logs over TCP to `logstash-logstash.monitoring.svc.cluster.local:5000`
 
 Access Kibana at the LoadBalancer external IP:
 
@@ -474,7 +448,7 @@ Create a data view with pattern `crewmeister-logs-*` to see application logs.
 | GCP credentials | GitHub Secret | CI/CD authenticates to GCP |
 | Grafana password | GitHub Secret → `TF_VAR_` | Passed to Terraform at apply time |
 
-> **Note:** In a production environment, GCP Secret Manager with Workload Identity Federation (WIF) would replace service account JSON keys entirely — no long-lived credentials stored anywhere.
+> **Note:** In a production environment, GCP Secret Manager with Workload Identity Federation (WIF) would replace service account JSON keys entirely, no long-lived credentials stored anywhere.
 
 ---
 
@@ -570,7 +544,7 @@ gsutil versioning set on gs://crewmeister-terraform-state-496312
 
 Go to **Settings → Environments → New environment** → name it `production` → enable **Required reviewers**.
 
-**5. Deploy infrastructure** — open a PR or run `infra.yml` manually via `workflow_dispatch`.
+**5. Deploy infrastructure** open a PR or run `infra.yml` manually via `workflow_dispatch`.
 
 **6. After Terraform applies, get the Cloud SQL IP:**
 
@@ -580,57 +554,7 @@ terraform -chdir=Infra output cloud_sql_ip
 
 Update the `CLOUD_SQL_IP` GitHub Secret with this value.
 
-**7. Deploy the app** — open a PR to trigger `ci-cd.yml`.
-
-### Useful kubectl commands
-
-```bash
-# Get all pods across all namespaces
-kubectl get pods -A
-
-# Check the app
-kubectl get pods -n crewmeister
-kubectl logs -n crewmeister -l app.kubernetes.io/name=crewmeister --tail=50
-
-# Check monitoring
-kubectl get pods -n monitoring
-
-# Get the Gateway public IP
-kubectl get gateway -n crewmeister
-
-# Get Grafana external IP
-kubectl get svc kube-prometheus-stack-grafana -n monitoring
-
-# Get Kibana external IP
-kubectl get svc kibana-kibana -n monitoring
-
-# Connect to MySQL (from inside the cluster)
-kubectl run mysql-client --image=mysql:8.0 -it --rm --restart=Never -n crewmeister -- \
-  mysql -h <CLOUD_SQL_IP> -u crewmeister -p challenge
-```
-
-### Useful Terraform commands
-
-```bash
-cd Infra
-
-# Initialize (first time or after module changes)
-terraform init
-
-# Preview changes
-terraform plan
-
-# Apply changes
-terraform apply
-
-# Destroy everything (careful!)
-terraform destroy
-
-# Show current outputs
-terraform output
-```
-
----
+**7. Deploy the app** open a PR to trigger `ci-cd.yml`.
 
 ## GitHub Secrets Reference
 
@@ -650,17 +574,9 @@ Add these in **Settings → Secrets and variables → Actions → New repository
 
 ## Design Decisions
 
-### Why GKE and not Cloud Run?
-
-Cloud Run is simpler but GKE was chosen to demonstrate:
-- Real Kubernetes deployments with Helm
-- Gateway API for advanced ingress control
-- ServiceMonitor for Prometheus integration
-- Full control over networking (private nodes, NAT, VPC peering)
-
 ### Why private GKE nodes?
 
-Security best practice. Private nodes have no public IP — an attacker who finds a vulnerability in the app cannot reach the underlying node directly. All outbound traffic goes through Cloud NAT.
+Security best practice. Private nodes have no public IP, an attacker who finds a vulnerability in the app cannot reach the underlying node directly. All outbound traffic goes through Cloud NAT.
 
 ### Why private Cloud SQL?
 
@@ -668,18 +584,10 @@ Same reason — no public IP means the database is completely invisible to the i
 
 ### Why Terraform modules?
 
-Modules make infrastructure reusable and testable. Each module has a single responsibility (VPC, GKE, Cloud SQL, etc.). This mirrors how real teams organize Terraform — different teams might own different modules.
-
-### Why Helm?
-
-Helm templates allow the same chart to be used across environments by changing only values (image tag, DB URL, replicas). The CI/CD pipeline uses `helm upgrade --install` which creates the release on first deploy and updates it on subsequent deploys — idempotent and safe.
+Modules make infrastructure reusable and testable. Each module has a single responsibility (VPC, GKE, Cloud SQL, etc.). This mirrors how real teams organize Terraform, different teams might own different modules.
 
 ### Why ELK + Prometheus instead of just one?
 
 They serve different purposes:
-- **Prometheus + Grafana** — real-time metrics (request rate, latency, JVM heap, CPU). Best for alerting and dashboards.
-- **ELK** — full log storage and search. Best for debugging specific errors, tracing request flows, and long-term log retention.
-
-### Why Trivy with `exit-code: 0`?
-
-The Spring Boot 3.3.5 dependency tree contains CVEs in Tomcat 10.1.31 and Spring Core 6.1.14 that require an upgrade to fix. Setting exit-code to 0 means the pipeline doesn't block while CVEs are acknowledged and tracked, but results are always visible in the GitHub Security tab. Upgrade to Spring Boot 3.3.11 to resolve the CRITICAL and most HIGH findings.
+- **Prometheus + Grafana** real-time metrics (request rate, latency, JVM heap, CPU). Best for alerting and dashboards.
+- **ELK** full log storage and search. Best for debugging specific errors, tracing request flows, and long-term log retention.
