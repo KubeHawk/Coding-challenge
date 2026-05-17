@@ -47,7 +47,7 @@ The diagrams below illustrate the full system. Import the XML files in `docs/` i
 
 ### Infrastructure architecture
 
-> `docs/Architecture.xml`
+![Infrastructure Architecture](docs/Architecture.png)
 
 ## Repository Structure
 
